@@ -15,7 +15,8 @@
   <!-- START -->
   <main v-if="screen === 'start'" class="wrap start">
     <h1>Tell Me or Teach Me</h1>
-    <p class="lede">Ten quick practice questions. Get one wrong and an AI tutor helps you fix it, then the idea comes back later to check it stuck.</p>
+    <p class="lede">Quick practice for your MAD 2 viva. Get one wrong and an AI tutor helps you fix it, then the idea comes back later to check it stuck.</p>
+    <p class="muted meta">15 questions · about 12 minutes · no login</p>
 
     <p v-if="groupCount" class="count">{{ groupCount }} {{ groupCount === 1 ? 'student' : 'students' }} practised here today</p>
 
@@ -29,10 +30,9 @@
     <p v-if="loadError" class="error">{{ loadError }}</p>
 
     <p class="consent">
-      This app is part of a small experiment on how a tutor should help after a mistake.
-      Both ways of helping are standard teaching methods. We store a random ID, your answers and your tutor chat,
-      never your name or number. Please don't type personal information in the chat.
-      Results will be shared with the group on Sunday.
+      Free practice, no login. We store only a random ID, your answers and your tutor chats, never your name or number.
+      Tutor replies are written by AI services, so please don't type personal information in the chat.
+      We sometimes try different ways of explaining to improve the tutor.
     </p>
   </main>
 
@@ -42,18 +42,25 @@
       <span>{{ subjectName(subject) }}</span>
       <span>Question {{ session.shown }}</span>
     </div>
+    <div class="progress" role="progressbar" :aria-valuenow="session.shown" aria-valuemin="0"
+         :aria-valuemax="session.planned" :aria-label="'Question ' + session.shown + ' of ' + session.planned">
+      <div :style="{ width: progress + '%' }"></div>
+    </div>
 
     <p v-if="isComeback" class="comeback">Comeback: an idea you missed earlier, asked a new way</p>
     <p v-else-if="item.concept.asked" class="asked">Came up in {{ Math.round(item.concept.asked.pct) }}% of recent viva reports · {{ item.concept.asked.topic }}</p>
 
-    <h2 class="question">{{ q.question }}</h2>
+    <pre v-if="isCode" class="question code">{{ q.question }}</pre>
+    <h2 v-else class="question">{{ q.question }}</h2>
 
-    <div class="options">
+    <div class="options" :class="{ mono: isCode }">
       <button v-for="(opt, i) in q.options" :key="i" class="option" :class="optionClass(i)"
               :disabled="submitted && !tutor.retry.active" @click="pick(i)">
         <b>{{ letters[i] }}</b><span>{{ opt }}</span>
       </button>
     </div>
+
+    <p v-if="submitted && !correct && !isComeback" class="cue">This idea will come back in a few questions to check it stuck.</p>
 
     <div v-if="!submitted" class="confidence">
       <p>How sure are you?</p>
@@ -107,7 +114,7 @@
     <h1>Your learning receipt</h1>
     <div class="stats">
       <div><b>{{ receipt.answered }}</b><span>answers</span></div>
-      <div><b>{{ receipt.firstTry }}</b><span>right first time</span></div>
+      <div><b>{{ receipt.firstTry }}/{{ receipt.originals }}</b><span>right first time</span></div>
       <div><b>{{ receipt.comebacksWon }}/{{ receipt.comebacksTotal }}</b><span>comebacks won</span></div>
     </div>
     <div v-if="receipt.fixed.length" class="list">
@@ -118,9 +125,11 @@
       <h3>Worth another look</h3>
       <ul><li v-for="t in receipt.stillShaky" :key="t">{{ t }}</li></ul>
     </div>
-    <button class="primary" @click="again">Practise another subject</button>
+    <a class="primary" :href="whatsappUrl" target="_blank" rel="noopener">Share on WhatsApp</a>
+    <button class="ghost" @click="practiseAgain">Practise again</button>
     <button class="ghost" @click="copyLink">{{ copied === true ? 'Link copied' : 'Copy link for a friend' }}</button>
     <p v-if="copied && copied !== true" class="muted break">{{ copied }}</p>
+    <button v-if="subjects.length > 1" class="ghost" @click="chooseSubject">Choose another subject</button>
   </main>
 </div>
 

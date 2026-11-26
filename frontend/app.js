@@ -7,9 +7,9 @@
  */
 const { createApp } = Vue;
 
-const SUBJECT_NAMES = { mlt: 'MLT', viva: 'App Dev viva', java: 'Java' };
+const SUBJECT_NAMES = { mlt: 'MLT', viva: 'MAD 2 viva', java: 'Java' };
 const SUBJECT_TAGLINES = { viva: 'The 16 topics examiners ask most, from 675 real viva reports' };
-const SESSION_SIZE = 10;
+const SESSION_SIZE = 15;
 const COMEBACK_GAP = 3;
 const LETTERS = 'ABCDE';
 
@@ -22,6 +22,26 @@ function makeUid() {
     'u-' + Date.now().toString(36) + '-' + Math.random().toString(36).slice(2, 10);
   try { localStorage.setItem('tot_uid', uid); } catch (e) { /* ignore */ }
   return uid;
+}
+
+// Concept ids this browser has already been shown, per subject.
+function loadSeen(subject) {
+  try {
+    const list = JSON.parse(localStorage.getItem('tot_seen_' + subject) || '[]');
+    return Array.isArray(list) ? list : [];
+  } catch (e) { return []; }
+}
+
+function saveSeen(subject, list) {
+  try { localStorage.setItem('tot_seen_' + subject, JSON.stringify(list)); } catch (e) { /* ignore */ }
+}
+
+// Record a shown concept; once every concept has been seen, start the list again.
+function markSeen(subject, conceptId, allConcepts) {
+  const seen = new Set(loadSeen(subject));
+  seen.add(conceptId);
+  const all = allConcepts.every((c) => seen.has(c.id));
+  saveSeen(subject, all ? [] : [...seen]);
 }
 
 function readGroup() {
@@ -62,6 +82,7 @@ createApp({
       group: readGroup(),
       subjects: [],
       subject: null,
+      concepts: null,
       flagsReady: false,
       studentsToday: null,
       loadError: '',
@@ -81,6 +102,18 @@ createApp({
 
   computed: {
     isComeback() { return this.item && this.item.kind === 'comeback'; },
+    isCode() { return !!this.q && this.q.question.includes('\n'); },
+    progress() {
+      const total = this.session ? this.session.planned : 0;
+      return total ? Math.min(100, (this.session.shown / total) * 100) : 0;
+    },
+    shareLink() {
+      return location.origin + location.pathname + (this.group !== 'direct' ? '?g=' + this.group : '');
+    },
+    whatsappUrl() {
+      const text = 'I just practised the most-asked MAD 2 viva topics with an AI tutor. Try it: ' + this.shareLink;
+      return 'https://wa.me/?text=' + encodeURIComponent(text);
+    },
     effectiveStyle() { return this.tutor.style || 'tell'; },
     revealAnswer() {
       if (!this.submitted) return false;
@@ -115,7 +148,7 @@ createApp({
   async mounted() {
     api('/api/health').catch(() => {}); // wake a sleeping free server early
     this.flagsReady = await Flags.init(this.uid, this.group);
-    const live = String(Flags.value('question_set', 'mlt,viva')).split(',').map((s) => s.trim());
+    const live = String(Flags.value('question_set', 'viva')).split(',').map((s) => s.trim());
     this.subjects = live.filter((s) => SUBJECT_NAMES[s]);
     api('/api/stats').then((r) => { this.studentsToday = r.studentsToday; }).catch(() => {});
     addEventListener('pagehide', () => Flags.flush());
@@ -131,12 +164,26 @@ createApp({
         const res = await fetch('questions/' + subject + '.json');
         const bank = await res.json();
         this.subject = subject;
-        this.session = new Quiz.Session(bank.concepts, { size: SESSION_SIZE, gap: COMEBACK_GAP });
-        this.screen = 'quiz';
-        this.next();
+        this.concepts = bank.concepts;
+        this.begin([]);
       } catch (e) {
         this.loadError = 'Could not load the questions. Please refresh and try again.';
       }
+    },
+
+    // New session from the already-loaded bank; `priority` concept ids are asked first.
+    begin(priority) {
+      this.session = new Quiz.Session(this.concepts, {
+        size: SESSION_SIZE, gap: COMEBACK_GAP, priority, seen: loadSeen(this.subject),
+      });
+      this.receipt = null;
+      this.copied = false;
+      this.screen = 'quiz';
+      this.next();
+    },
+
+    practiseAgain() {
+      this.begin(this.receipt ? this.receipt.stillShakyIds : []);
     },
 
     next() {
@@ -147,6 +194,7 @@ createApp({
       this.tutor = freshTutor();
       this.item = this.session.next();
       if (!this.item) return this.finish();
+      markSeen(this.subject, this.item.concept.id, this.concepts);
       this.q = this.session.question(this.item);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
@@ -238,14 +286,14 @@ createApp({
       Flags.flush();
     },
 
-    again() {
+    chooseSubject() {
       this.screen = 'start';
       this.session = null;
       this.receipt = null;
     },
 
     async copyLink() {
-      const link = location.origin + location.pathname + (this.group !== 'direct' ? '?g=' + this.group : '');
+      const link = this.shareLink;
       try {
         await navigator.clipboard.writeText(link);
         this.copied = true;
