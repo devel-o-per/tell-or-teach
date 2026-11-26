@@ -8,7 +8,7 @@
 const { createApp } = Vue;
 
 const SUBJECT_NAMES = { mlt: 'MLT', viva: 'MAD 2 viva', java: 'Java' };
-const SUBJECT_TAGLINES = { viva: 'The 16 topics examiners ask most, from 675 real viva reports' };
+const SUBJECT_TAGLINES = { viva: 'The most-asked topics, from 675 real viva reports' };
 const SESSION_SIZE = 15;
 const COMEBACK_GAP = 3;
 const LETTERS = 'ABCDE';
