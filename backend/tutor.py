@@ -113,6 +113,9 @@ def _strip_thinking(text):
         text = text.split("</think>", 1)[1]
     text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
     text = re.sub(r"^#+\s*", "", text, flags=re.M)
+    text = text.replace("`", "")
+    text = re.sub("[   ]", " ", text)  # narrow/no-break/thin spaces
+    text = text.replace("‑", "-")  # non-breaking hyphen
     return text.strip()
 
 
