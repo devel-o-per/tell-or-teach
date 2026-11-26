@@ -40,7 +40,17 @@
   <main v-else-if="screen === 'quiz' && q" class="wrap quiz">
     <div class="bar">
       <span>{{ subjectName(subject) }}</span>
-      <span>Question {{ session.shown }}</span>
+      <span class="bar-right">
+        Question {{ session.shown }}
+        <button type="button" class="end" @click="askEnd">End</button>
+      </span>
+    </div>
+    <div v-if="confirmEnd" class="confirm" role="alertdialog" aria-labelledby="end-title">
+      <p id="end-title">End practice? You'll see results for what you've answered so far.</p>
+      <div class="pair">
+        <button ref="keepGoing" type="button" @click="confirmEnd = false">Keep going</button>
+        <button type="button" class="stop" @click="endNow">End</button>
+      </div>
     </div>
     <div class="progress" role="progressbar" :aria-valuenow="session.shown" aria-valuemin="0"
          :aria-valuemax="session.planned" :aria-label="'Question ' + session.shown + ' of ' + session.planned">
@@ -106,7 +116,7 @@
       </div>
     </section>
 
-    <button v-if="canContinue" class="primary next" @click="next">Next question</button>
+    <button v-if="canContinue" class="primary next" @click="next">{{ isLast ? 'See my results' : 'Next question' }}</button>
   </main>
 
   <!-- RECEIPT -->
@@ -115,7 +125,7 @@
     <div class="stats">
       <div><b>{{ receipt.answered }}</b><span>answers</span></div>
       <div><b>{{ receipt.firstTry }}/{{ receipt.originals }}</b><span>right first time</span></div>
-      <div><b>{{ receipt.comebacksWon }}/{{ receipt.comebacksTotal }}</b><span>comebacks won</span></div>
+      <div v-if="receipt.comebacksTotal"><b>{{ receipt.comebacksWon }}/{{ receipt.comebacksTotal }}</b><span>comebacks won</span></div>
     </div>
     <div v-if="receipt.fixed.length" class="list">
       <h3>Ideas you fixed today</h3>

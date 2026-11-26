@@ -96,12 +96,15 @@ createApp({
       tutor: freshTutor(),
       receipt: null,
       copied: false,
+      confirmEnd: false,
       letters: LETTERS,
     };
   },
 
   computed: {
     isComeback() { return this.item && this.item.kind === 'comeback'; },
+    // Last item: nothing left in the queue and no comeback still to come.
+    isLast() { return !!this.session && !this.session.queue.length && !this.session.pending.length; },
     isCode() { return !!this.q && this.q.question.includes('\n'); },
     progress() {
       const total = this.session ? this.session.planned : 0;
@@ -152,6 +155,7 @@ createApp({
     this.subjects = live.filter((s) => SUBJECT_NAMES[s]);
     api('/api/stats').then((r) => { this.studentsToday = r.studentsToday; }).catch(() => {});
     addEventListener('pagehide', () => Flags.flush());
+    addEventListener('popstate', () => this.onBack());
   },
 
   methods: {
@@ -178,8 +182,49 @@ createApp({
       });
       this.receipt = null;
       this.copied = false;
+      this.confirmEnd = false;
       this.screen = 'quiz';
+      this.guardBack();
       this.next();
+    },
+
+    // ---------- leaving a quiz: End button and the phone's back button ----------
+
+    // One extra history entry while a quiz runs, so "back" lands here instead of leaving the site.
+    guardBack() {
+      if (!(history.state && history.state.totQuiz)) history.pushState({ totQuiz: true }, '');
+    },
+
+    // Drop that entry when the quiz is over, so back on the start/receipt screen behaves normally.
+    releaseBack() {
+      if (history.state && history.state.totQuiz) {
+        this.releasing = true;
+        history.back();
+      }
+    },
+
+    onBack() {
+      if (this.releasing) {               // our own history.back() from releaseBack
+        this.releasing = false;
+        if (this.screen === 'quiz') this.guardBack(); // a new quiz started meanwhile
+        return;
+      }
+      if (this.screen !== 'quiz') return; // start and receipt: normal back
+      this.guardBack();                   // a second back press still won't exit
+      this.askEnd();
+    },
+
+    askEnd() {
+      this.confirmEnd = true;
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+      this.$nextTick(() => this.$refs.keepGoing && this.$refs.keepGoing.focus());
+    },
+
+    // Only answers already checked count; nothing extra is sent to the server.
+    endNow() {
+      this.confirmEnd = false;
+      if (this.session.results.length) return this.finish();
+      this.chooseSubject();
     },
 
     practiseAgain() {
@@ -283,6 +328,7 @@ createApp({
     finish() {
       this.receipt = this.session.receipt();
       this.screen = 'receipt';
+      this.releaseBack();
       Flags.flush();
     },
 
@@ -290,6 +336,7 @@ createApp({
       this.screen = 'start';
       this.session = null;
       this.receipt = null;
+      this.releaseBack();
     },
 
     async copyLink() {
