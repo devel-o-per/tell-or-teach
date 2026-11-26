@@ -11,10 +11,10 @@
           "id": "viva-celery-a",
           "question": "In a Flask app, why would you use Celery to send monthly report emails?",
           "options": [
-            "To store user sessions securely",
+            "To keep each user's session data encrypted between web requests",
             "To run the slow job in the background so web requests stay fast",
-            "To render Vue templates on the server",
-            "To replace the database for large reports"
+            "To render the report's Vue templates on the server before sending",
+            "To store the finished reports in place of the main SQL database"
           ],
           "answer": 1,
           "explanation": "Building and emailing reports is slow. If a web request did it, the user would wait. Celery runs such jobs in a separate worker process, so the web app answers quickly and the job finishes in the background.",
@@ -27,9 +27,9 @@
           "id": "viva-celery-b",
           "question": "A user clicks 'Export CSV' and the page freezes for 40 seconds while the file is built. What is the best fix?",
           "options": [
-            "Increase the browser's timeout",
-            "Move the export code into the Vue component",
-            "Store the CSV in Redis permanently",
+            "Increase the browser's request timeout so the export can finish",
+            "Move the export code into the Vue component so the browser builds it",
+            "Store every generated CSV in Redis permanently so it loads faster",
             "Hand the export to a Celery task and notify the user when it's ready"
           ],
           "answer": 3,
@@ -55,13 +55,13 @@
           "id": "viva-code-celery-task-a",
           "question": "Fill the blank to make this function a Celery task:\n\n____\ndef add(x, y):\n    return x + y",
           "options": [
-            "@app.route('/add')",
-            "@celery.schedule",
-            "@celery.task  (or @shared_task)",
-            "@celery.worker"
+            "@app.route",
+            "@celery.beat",
+            "@celery.task",
+            "@celery.job"
           ],
           "answer": 2,
-          "explanation": "A function becomes a Celery task with the task decorator (@celery.task, or @shared_task). @app.route makes a Flask route, and schedules live in the beat configuration, not in a decorator like these.",
+          "explanation": "A function becomes a Celery task with the task decorator: @celery.task, or @shared_task, which does the same job without needing the app object. @app.route makes a Flask route, and @celery.beat and @celery.job don't exist: schedules live in the beat configuration, not in a decorator.",
           "hints": [
             "Which decorator registers a function with Celery rather than with Flask?",
             "Is scheduling done on the function itself, or in the beat settings?"
@@ -103,10 +103,10 @@
           "id": "viva-celery-worker-a",
           "question": "Your Celery instance is called  celery  inside app.py. Which command starts a worker?",
           "options": [
-            "python app.py worker",
+            "python app.py worker --celery --loglevel=info",
             "celery -A app.celery worker --loglevel=info",
-            "flask run --celery",
-            "redis-server --worker"
+            "flask run --with-celery-worker --loglevel=info",
+            "redis-server --worker app.celery --loglevel=info"
           ],
           "answer": 1,
           "explanation": "The celery command starts a worker; -A points it at your Celery app (module app, object celery). Flask and Redis each run separately with their own commands.",
@@ -143,9 +143,9 @@
           "id": "viva-code-route-a",
           "question": "Fill the blank in this route, which adds two numbers sent as JSON:\n\n@app.route('/add', methods=['POST'])\ndef add():\n    data = ____\n    return jsonify({'sum': data['a'] + data['b']})",
           "options": [
-            "request.args",
-            "request.form",
-            "jsonify(request)",
+            "request.args.get('a')",
+            "request.form.to_dict()",
+            "jsonify(request.data)",
             "request.get_json()"
           ],
           "answer": 3,
@@ -160,12 +160,12 @@
           "question": "Fill the blank so this route both lists items (GET) and creates one (POST):\n\n@app.route('/items', ____)\ndef items():\n    if request.method == 'POST':\n        ...\n    return jsonify(all_items())",
           "options": [
             "methods=['GET', 'POST']",
-            "method='GET,POST'",
-            "methods='POST'",
+            "method=['GET', 'POST']",
+            "methods=['POST', 'PUT']",
             "type=['GET', 'POST']"
           ],
           "answer": 0,
-          "explanation": "app.route takes a methods list naming every HTTP method the route accepts. Without POST in it, Flask answers POST requests with 405 Method Not Allowed.",
+          "explanation": "app.route takes a keyword called methods: a list naming every HTTP method the route accepts. Without POST in it, Flask answers POST requests with 405 Method Not Allowed, and without GET the list can't be fetched.",
           "hints": [
             "What keyword does app.route use for allowed HTTP methods?",
             "Does it take a single string or a list?"
@@ -191,13 +191,13 @@
           "id": "viva-code-route-filter-a",
           "question": "Fill the blank so this route returns all blacklisted users:\n\n@app.route('/api/users/blacklisted')\ndef blacklisted():\n    users = ____\n    return jsonify([u.to_dict() for u in users])",
           "options": [
-            "User.query.get(blacklisted=True)",
-            "User.filter(blacklisted=True).all()",
+            "User.query.get(blacklisted=True).all()",
+            "User.filter_by(blacklisted=True).all()",
             "User.query.filter_by(blacklisted=True).all()",
-            "jsonify(User, blacklisted=True)"
+            "User.query.get_or_404(blacklisted=True).all()"
           ],
           "answer": 2,
-          "explanation": "Model.query.filter_by(column=value) builds the query and .all() runs it, returning a list. .get() only looks up by primary key, and a model has no filter method without .query.",
+          "explanation": "Model.query.filter_by(column=value) builds the query and .all() runs it, returning a list. .get() and .get_or_404() only look up one row by primary key, and a model has no filter_by method without .query.",
           "hints": [
             "Which method filters rows by a column's value, like blacklisted=True?",
             "After building the query, which call runs it and gives you every match?"
@@ -235,13 +235,13 @@
           "id": "viva-code-login-a",
           "question": "Fill the blank so this login route checks the password safely:\n\nuser = User.query.filter_by(email=data['email']).first()\nif not user or not ____:\n    return jsonify({'error': 'Invalid login'}), 401",
           "options": [
-            "user.password == data['password']",
-            "hash(data['password'])",
-            "data['password'] in user.password",
+            "user.password == generate_password_hash(data['password'])",
+            "hashlib.sha256(data['password']) == user.password",
+            "user.password == data['password'].encode('utf-8')",
             "check_password_hash(user.password, data['password'])"
           ],
           "answer": 3,
-          "explanation": "Passwords are stored as hashes, never plain text. check_password_hash hashes the typed password the same way and compares it with the stored hash. Comparing with == only works if passwords were stored in plain text, which they must not be.",
+          "explanation": "Passwords are stored as hashes, never plain text. check_password_hash hashes the typed password the same way, using the salt saved in the stored hash, and compares the two. generate_password_hash adds a new random salt every time, so == against a fresh hash never matches, and comparing with the typed password itself only works if passwords were stored in plain text, which they must not be.",
           "hints": [
             "Is the password stored as typed, or as a hash?",
             "So which function can compare a typed password with a stored hash?"
@@ -251,10 +251,10 @@
           "id": "viva-code-login-b",
           "question": "Why should a login route never check  user.password == typed_password ?",
           "options": [
-            "== is too slow for strings",
+            "== compares strings one character at a time, which is too slow for long passwords on a busy server",
             "The database should only hold password hashes, so they must be checked with a hash function, not ==",
-            "Flask doesn't allow == inside routes",
-            "There's no problem: it works fine"
+            "Flask blocks the == operator inside route functions, so the login route raises an error at runtime",
+            "There's no problem: == is fine as long as the login page is served over HTTPS and the form uses POST"
           ],
           "answer": 1,
           "explanation": "If passwords are hashed properly, the stored value is a hash and == against the typed password never matches. If == does match, the passwords are stored in plain text, which is a serious security flaw.",
@@ -275,10 +275,10 @@
           "id": "viva-orm-a",
           "question": "What does an ORM like SQLAlchemy do in your Flask app?",
           "options": [
-            "Keeps all data in memory instead of a database",
+            "Keeps all your app's data in Python memory, so you no longer need a database",
             "Lets you work with database rows as Python objects and writes the SQL for you",
-            "Removes the need for a database schema",
-            "Makes Vue render pages faster"
+            "Builds the database schema automatically, so you never define tables or columns",
+            "Speeds up Vue rendering by sending the browser pre-built HTML for each page"
           ],
           "answer": 1,
           "explanation": "ORM means Object-Relational Mapping. Each table becomes a Python class and each row an object, so you write user.name or User.query.all() and SQLAlchemy turns that into SQL for the database.",
@@ -291,9 +291,9 @@
           "id": "viva-orm-b",
           "question": "In Flask-SQLAlchemy, what does a class like  class User(db.Model)  represent?",
           "options": [
-            "A Vue component for the user page",
-            "A single column called User",
-            "A dictionary of logged-in users",
+            "A Vue component that renders the user profile page",
+            "A single column called User inside the main table",
+            "A dictionary of the users who are logged in right now",
             "A database table, where each User object is one row"
           ],
           "answer": 3,
@@ -325,11 +325,11 @@
           "options": [
             "User.query.filter_by(email=email).all()",
             "User.query.filter_by(email=email).first()",
-            "User.query.get(email)",
-            "User.query.filter_by(email=email)"
+            "User.query.filter_by(email=email).one()",
+            "User.query.filter_by(email=email).count()"
           ],
           "answer": 1,
-          "explanation": ".first() runs the query and returns the first match or None. .all() returns a list, .get() looks up by primary key only, and without .first() or .all() you still have a query that hasn't run.",
+          "explanation": ".first() runs the query and returns the first match or None. .all() returns a list, .one() raises an error when nothing matches, and .count() returns a number rather than a user.",
           "hints": [
             "Do you want a list, or a single user?",
             "Which call returns one result, or None when nothing matches?"
@@ -339,13 +339,13 @@
           "id": "viva-orm-query-b",
           "question": "What does  User.query.filter_by(role='admin').all()  return?",
           "options": [
-            "The first admin, or None",
-            "A number counting the admins",
-            "An error if there are no admins",
+            "The first User whose role is 'admin', or None if there isn't one",
+            "A number counting how many users have the role 'admin' in the table",
+            "A query object that runs only when you loop over the admin users",
             "A list of every User whose role is 'admin' (empty if there are none)"
           ],
           "answer": 3,
-          "explanation": ".all() runs the query and always returns a list: every matching row, or an empty list. It never raises an error just because nothing matched.",
+          "explanation": ".all() runs the query straight away and always returns a list: every matching row, or an empty list. .first() would give one user or None, and .count() a number. It never raises an error just because nothing matched.",
           "hints": [
             "What kind of value does .all() give back?",
             "What happens when no rows match: an error, or something empty?"
@@ -368,9 +368,9 @@
           "question": "In the User model you add  bookings = db.relationship('Booking', backref='user') . What does that give you?",
           "options": [
             "user.bookings (a list) and booking.user, without adding a new column",
-            "A new bookings column in the users table",
-            "A copy of every booking stored inside each user row",
-            "A foreign key in the users table"
+            "A new bookings column in the users table that holds each booking id",
+            "A copy of every booking stored inside each user row of the database",
+            "A foreign key column in users that points at the bookings table"
           ],
           "answer": 0,
           "explanation": "db.relationship is a Python-level link. It uses the foreign key on Booking (user_id) to give you user.bookings and, through backref, booking.user. It doesn't create any column.",
@@ -383,10 +383,10 @@
           "id": "viva-orm-relationship-b",
           "question": "Which line creates the real database column that links a booking to its user?",
           "options": [
-            "In User:  bookings = db.relationship('Booking')",
-            "In Booking:  user = db.backref('user')",
+            "In User:  bookings = db.relationship('Booking', backref='user', lazy=True)",
+            "In Booking:  user = db.relationship('User', backref='bookings')",
             "In Booking:  user_id = db.Column(db.Integer, db.ForeignKey('user.id'))",
-            "In User:  db.Index('user_booking')"
+            "In User:  db.Index('user_booking', 'user.id', 'booking.user_id')"
           ],
           "answer": 2,
           "explanation": "Only db.Column with db.ForeignKey creates a column in the table. db.relationship and backref are conveniences built on top of that foreign key.",
@@ -407,10 +407,10 @@
           "id": "viva-broker-a",
           "question": "In a Flask + Celery + Redis setup, what is Redis's job for Celery?",
           "options": [
-            "It runs the task's Python code",
+            "It runs each task's Python code itself, so you don't need to start a separate Celery worker",
             "It is the message broker: a queue where Flask drops tasks and workers pick them up",
-            "It replaces the SQL database",
-            "It renders the email templates"
+            "It replaces the SQL database and stores all of the app's users and bookings",
+            "It renders the email templates and sends the finished messages to each user"
           ],
           "answer": 1,
           "explanation": "Flask doesn't hand tasks straight to the worker. It puts a message in Redis, the broker, and the Celery worker reads tasks from there and runs them. Redis carries the messages; the worker runs the code.",
@@ -423,10 +423,10 @@
           "id": "viva-broker-b",
           "question": "Flask calls send_report.delay(), but Redis (the broker) is down. What happens?",
           "options": [
-            "The worker runs it anyway, straight from Flask",
-            "Flask quietly runs it inside the request instead",
+            "The worker runs it anyway, because Flask hands the task to it directly",
+            "Flask quietly runs the task inside the request instead, so it still works",
             "The task can't be queued, so the call fails instead of the job running",
-            "The task waits in SQLite until Redis is back"
+            "The task waits in SQLite until Redis is back, then goes to the worker"
           ],
           "answer": 2,
           "explanation": "With Redis down there is nowhere to put the task message, so it never reaches a worker; the call errors after trying to connect. Celery doesn't silently switch to running the task inside Flask or store it in your database.",
@@ -455,10 +455,10 @@
           "id": "viva-redis-what-a",
           "question": "What is Redis?",
           "options": [
-            "A SQL database that replaces SQLite",
-            "A Python web framework like Flask",
+            "A SQL database that replaces SQLite and stores your tables on disk with joins",
+            "A Python web framework like Flask, often used to build small, very fast JSON APIs",
             "An in-memory key-value data store, often used for caching and as Celery's broker",
-            "A JavaScript library for Vue"
+            "A JavaScript library that stores Vue component state in the browser's memory"
           ],
           "answer": 2,
           "explanation": "Redis keeps data in memory as keys and values. That makes it very fast, which is why apps use it as a cache and as the message queue (broker) for Celery.",
@@ -472,9 +472,9 @@
           "question": "Why is reading a cached value from Redis usually much faster than re-running a SQL query?",
           "options": [
             "Redis keeps data in RAM and fetches it by key, with no query to plan or tables to scan",
-            "Redis compresses SQL queries",
-            "Redis runs queries on the graphics card",
-            "Redis works without any network connection"
+            "Redis compresses each SQL query and its result, so less data travels over the network",
+            "Redis runs the query on the graphics card, which handles many rows at once in parallel",
+            "Redis works without a network connection, so the app reads it like a local Python dict"
           ],
           "answer": 0,
           "explanation": "A cache hit in Redis is a single key lookup in memory. A heavy SQL query has to be planned and may join and scan tables, often reading from disk.",
@@ -511,10 +511,10 @@
           "id": "viva-redis-cache-b",
           "question": "Your dashboard runs the same heavy SQL query for every visitor, but the data only changes once an hour. What helps most?",
           "options": [
-            "Run the query twice to be safe",
-            "Switch the route from GET to POST",
+            "Run the query twice and keep the faster result",
+            "Switch the dashboard route from GET to POST requests",
             "Cache the result in Redis with a one-hour expiry",
-            "Add more Vue components to the dashboard"
+            "Split the dashboard into more Vue components"
           ],
           "answer": 2,
           "explanation": "The result is the same for an hour, so computing it once and serving it from Redis avoids repeating the heavy query. An expiry of one hour makes sure visitors get fresh data after it changes.",
@@ -555,10 +555,10 @@
           "id": "viva-cache-invalidation-b",
           "question": "How do you make users see a newly added item right away when its list is cached?",
           "options": [
-            "Make the cache expiry longer",
-            "Restart the Vue app",
+            "Make the cache expiry longer so the list is stored more safely",
+            "Restart the Vue app in the browser after every new item is added",
             "Delete (invalidate) that cache key whenever the data changes",
-            "Move the cache to the browser's localStorage"
+            "Move the cache to the browser's localStorage for each user"
           ],
           "answer": 2,
           "explanation": "When the data changes, remove the cached copy (for example cache.delete or delete_memoized). The next request finds no cache, reads fresh data from the database and caches that.",
@@ -587,9 +587,9 @@
           "id": "viva-cache-decorator-a",
           "question": "What does  @cache.cached(timeout=60)  on a Flask route do?",
           "options": [
-            "Makes the route time out after 60 seconds",
-            "Saves every request to the database for 60 seconds",
-            "Refreshes the browser every 60 seconds",
+            "Makes the route stop and return a timeout error whenever it runs for longer than 60 seconds",
+            "Saves every incoming request to the database and deletes it after 60 seconds",
+            "Tells the browser to refresh the page every 60 seconds to get the newest data",
             "Stores the route's response for 60 seconds and returns that copy to later requests"
           ],
           "answer": 3,
@@ -603,10 +603,10 @@
           "id": "viva-cache-decorator-b",
           "question": "/api/my-bookings uses @cache.cached, and user B suddenly sees user A's bookings. Why?",
           "options": [
-            "Redis mixes up keys under heavy load",
+            "Redis mixes up keys under heavy load and sometimes returns the value stored for another key",
             "The cache key is the URL, which is the same for both users, so B gets A's cached response",
-            "User B's token expired",
-            "Vue cached the page in the browser"
+            "User B's token expired, so Flask fell back to the last token it saw, which was user A's",
+            "Flask-Caching shares one cache entry across all routes, so every route returns the same response"
           ],
           "answer": 1,
           "explanation": "@cache.cached keys on the request path by default, so everyone calling the same URL shares one cached copy. For per-user data, put the user in the key (a custom key or @cache.memoize on a function that takes the user id).",
@@ -627,10 +627,10 @@
           "id": "viva-token-auth-a",
           "question": "Your Vue app is served separately from your Flask API. Why is token-based authentication (a token sent with each request) a common choice here?",
           "options": [
-            "Tokens make passwords unnecessary",
-            "JavaScript apps cannot use cookies at all",
+            "Tokens make passwords unnecessary, so users never have to type a password to log in at all",
+            "JavaScript apps cannot use cookies at all, so a token is the only possible way to keep a user logged in",
             "Each request carries its own proof of identity, so the API doesn't need to remember a login session",
-            "Tokens encrypt everything the API sends back"
+            "Tokens encrypt every response the API sends back, so nobody on the network can read them"
           ],
           "answer": 2,
           "explanation": "With tokens the API stays stateless: it doesn't keep a server-side session for each browser. Every request carries the token, and the API checks it. That fits a separate Vue frontend and Flask backend well.",
@@ -643,13 +643,13 @@
           "id": "viva-token-auth-b",
           "question": "In a token-based Flask API, what must the Vue frontend do on every protected request?",
           "options": [
-            "Send the token with the request, usually in the Authorization header",
-            "Send the username and password again",
-            "Nothing: the server remembers the browser after the first login",
-            "Open a new Flask session before each call"
+            "Send the token with the request in a header (for example Authorization or Authentication-Token)",
+            "Send the username and password again in the request body so the server can check them",
+            "Nothing: the server remembers the browser after the first login and recognises it each time",
+            "Open a new Flask session before each call and put its session id in the query string of the URL"
           ],
           "answer": 0,
-          "explanation": "Token APIs are stateless: the server doesn't remember the browser. So every protected request must include the token, usually as Authorization: Bearer <token>. Without it the API can't tell who is calling.",
+          "explanation": "Token APIs are stateless: the server doesn't remember the browser. So every protected request must include the token in a header, for example Authorization: Bearer <token>, or Authentication-Token as Flask-Security uses. Without it the API can't tell who is calling.",
           "hints": [
             "Does a token-based API keep a memory of which browser logged in?",
             "If the server remembers nothing, what has to travel with every request?"
@@ -671,7 +671,7 @@
           "id": "viva-lifecycle-a",
           "question": "Which Vue lifecycle hook is the usual place to fetch data from your API when a component first appears?",
           "options": [
-            "mounted (or created)",
+            "mounted",
             "beforeUnmount",
             "updated",
             "unmounted"
@@ -687,10 +687,10 @@
           "id": "viva-lifecycle-b",
           "question": "You fetch data inside updated(), and the page keeps fetching in a loop. Why?",
           "options": [
-            "updated() only runs once, so it must be a network bug",
-            "fetch cannot be used inside Vue components",
+            "updated() only runs once, so the loop must come from a bug in the network layer",
+            "fetch cannot be used inside Vue components, so the browser keeps retrying the call",
             "Saving the fetched data re-renders the component, which calls updated() again",
-            "The API is too slow, so Vue retries it"
+            "The API is too slow to answer, so Vue automatically retries the request in a loop"
           ],
           "answer": 2,
           "explanation": "updated runs after every re-render. Storing the fetched data changes reactive state, which triggers another render, which calls updated again: a loop. Fetch in created or mounted instead.",
@@ -720,9 +720,9 @@
           "question": "A user clicks 'Export CSV' for a large report. What is the usual Celery-based flow?",
           "options": [
             "The route starts a Celery task and returns its task id; the frontend checks the status and downloads the file when it's ready",
-            "The route builds the CSV itself while the user waits",
-            "Vue builds the CSV by reading the database directly",
-            "Redis converts the table to CSV on its own"
+            "The route builds the whole CSV itself while the user waits, then returns the file in the same response once every row is written",
+            "Vue reads the database directly from the browser, builds the CSV there, and downloads it without calling the Flask API at all",
+            "Redis converts the database table to CSV on its own and emails the finished file to the user when the conversion is complete"
           ],
           "answer": 0,
           "explanation": "Building a big CSV is slow, so the route hands it to a Celery task and answers at once with the task id. The frontend then checks that task's status and fetches the file when it's finished.",
@@ -735,10 +735,10 @@
           "id": "viva-csv-export-b",
           "question": "Why does the export route return a task id instead of the CSV file?",
           "options": [
-            "Task ids are smaller to send than CSV files",
-            "Browsers can't download CSV files",
+            "Because browsers can't download CSV files directly, so the id is turned into a file later",
+            "Because Celery deletes the file as soon as it's built unless a task id is returned first",
             "So the frontend can ask later whether the task has finished, and then fetch the file",
-            "Celery would delete the file otherwise"
+            "Because Flask can only return JSON from a route, never a file such as a CSV download"
           ],
           "answer": 2,
           "explanation": "The file doesn't exist yet when the route answers. The task id is the frontend's ticket: it checks the status with it and downloads the result once the task is done.",
@@ -763,9 +763,9 @@
           "id": "viva-css-priority-a",
           "question": "An element has  style=\"color: red\"  and styles.css sets  color: blue  for it. Which colour shows?",
           "options": [
-            "Blue, because the stylesheet loads last",
-            "Purple, because the colours mix",
-            "Whichever rule is written later in the HTML file",
+            "Blue, because the stylesheet loads after the inline style",
+            "Purple, because the two colours are mixed together",
+            "Whichever of the two rules is written later in the HTML file",
             "Red, because an inline style beats a stylesheet rule"
           ],
           "answer": 3,
@@ -779,10 +779,10 @@
           "id": "viva-css-priority-b",
           "question": "You change a button's colour in styles.css, but it stays red. Its tag has  style=\"background: red\" . What is the fix?",
           "options": [
-            "Clear the Redis cache",
+            "Clear the Redis cache so the new CSS is served",
             "Remove or change the inline style on the tag",
-            "Restart the Celery worker",
-            "Wrap the button in v-show"
+            "Restart the Celery worker to reload the styles",
+            "Wrap the button in v-show so styles.css applies"
           ],
           "answer": 1,
           "explanation": "The inline style beats your stylesheet rule. Change or remove it on the tag (or, as a last resort, use !important in the stylesheet).",
@@ -803,10 +803,10 @@
           "id": "viva-cli-cdn-a",
           "question": "What is the main difference between using Vue from a CDN and using the Vue CLI or Vite?",
           "options": [
-            "CDN Vue cannot use components",
+            "CDN Vue cannot use components at all, so every page must be written as one large template with no reusable parts",
             "A CDN loads Vue with a script tag and no build step; the CLI or Vite sets up a project with a build step and .vue files",
-            "CLI apps run on the server instead of the browser",
-            "The CDN version is only allowed in production"
+            "CLI and Vite apps run on the server and send finished HTML, while CDN Vue runs in the browser like a normal script",
+            "The CDN version is only allowed during development, while the CLI or Vite version is the only one allowed in production"
           ],
           "answer": 1,
           "explanation": "With a CDN you add a script tag and write Vue directly in your pages, no npm or build. The CLI or Vite creates a project with npm, a build step and single-file .vue components that get compiled.",
@@ -847,9 +847,9 @@
           "id": "viva-celery-beat-a",
           "question": "Your app must send a daily reminder at 6 PM. Which part of the Celery setup triggers the task at that time?",
           "options": [
-            "The Celery worker, which wakes itself up every day",
-            "Redis, which runs Python code at set times",
-            "The Flask route the user last visited",
+            "The Celery worker, which wakes itself up every day at 6 PM",
+            "Redis, which runs the task's Python code at the set times",
+            "The Flask route the user last visited, through a timer",
             "Celery Beat, the scheduler that sends tasks on a timetable"
           ],
           "answer": 3,
@@ -869,7 +869,7 @@
             "SQLite's background thread"
           ],
           "answer": 1,
-          "explanation": "A worker runs tasks it receives but never schedules anything itself. Scheduled tasks need Celery Beat running alongside the worker to send them on time.",
+          "explanation": "A worker runs tasks it receives but never schedules anything itself (unless the worker was started with -B, which runs Beat inside it). Scheduled tasks need Celery Beat running alongside the worker to send them on time.",
           "hints": [
             "The worker is fine, so who is supposed to send it the daily task?",
             "Which Celery process knows about times and schedules?"
@@ -891,10 +891,10 @@
           "id": "viva-fetch-errors-a",
           "question": "Your Flask API returns a 400 with an error message. With fetch, why doesn't your .catch() run?",
           "options": [
-            "Flask cannot send a 400 to Vue",
+            "Flask cannot send a 400 status to a Vue app, so the browser turns it into a normal 200 response",
             "fetch only rejects on a network failure; you must check response.ok or response.status yourself",
-            ".catch() only works with axios",
-            "400 is a success code"
+            ".catch() only works with axios; with fetch you must wrap every request in a setTimeout instead",
+            "Vue catches every fetch error first and stops it, so your own .catch() handler never gets to run"
           ],
           "answer": 1,
           "explanation": "fetch treats any HTTP response, even 400 or 500, as a successful request. It only rejects when the network fails. Check response.ok (or the status) and handle the error yourself.",
@@ -907,10 +907,10 @@
           "id": "viva-fetch-errors-b",
           "question": "What is the main practical difference between fetch and axios when the server returns an error status?",
           "options": [
-            "fetch cannot send JSON",
-            "axios only works with Flask",
+            "fetch cannot send JSON bodies at all, so you need axios whenever the server returns an error",
+            "axios only works with Flask APIs, while fetch works with any server that returns errors",
             "axios rejects the promise on 4xx/5xx by default; fetch resolves and you check response.ok",
-            "Both ignore status codes completely"
+            "Both ignore status codes completely, so you must read the error message inside the body"
           ],
           "answer": 2,
           "explanation": "By default axios throws for error statuses, so .catch() or try/catch receives them. fetch resolves for any response, so you must check response.ok yourself.",
@@ -955,13 +955,13 @@
           "id": "viva-crontab-b",
           "question": "Which schedule runs a monthly report at 9:00 AM on the 1st of every month?",
           "options": [
-            "crontab(hour=9, minute=1)",
-            "crontab(month_of_year=1, hour=9)",
+            "crontab(day_of_week=1, hour=9, minute=0)",
+            "crontab(month_of_year=1, hour=9, minute=0)",
             "crontab(day_of_month=1, hour=9, minute=0)",
-            "crontab(minute=9, hour=1)"
+            "crontab(day_of_month=9, hour=1, minute=0)"
           ],
           "answer": 2,
-          "explanation": "day_of_month=1 picks the 1st, hour=9 and minute=0 pick 9:00. month_of_year=1 would mean January only, and hour=9 without a minute would run every minute of that hour.",
+          "explanation": "day_of_month=1 picks the 1st, hour=9 and minute=0 pick 9:00. day_of_week=1 would mean every Monday, month_of_year=1 every day in January, and swapping the numbers gives 1 AM on the 9th. Leaving out minute=0 would run it every minute of that hour.",
           "hints": [
             "Which field picks the day of the month?",
             "What happens if you set the hour but not the minute?"
@@ -983,13 +983,13 @@
           "id": "viva-search-a",
           "question": "Which SQLAlchemy line finds items whose name contains 'park', ignoring upper and lower case?",
           "options": [
-            "Item.query.filter_by(name='park').all()",
+            "Item.query.filter_by(name='%park%').all()",
             "Item.query.filter(Item.name.ilike('%park%')).all()",
-            "Item.query.get('park')",
+            "Item.query.filter(Item.name.ilike('park')).first()",
             "Item.query.filter(Item.name == '%park%').all()"
           ],
           "answer": 1,
-          "explanation": "ilike does a case-insensitive pattern match, and the % signs mean 'anything before or after'. filter_by and == only match the exact text.",
+          "explanation": "ilike does a case-insensitive pattern match, and the % signs mean 'anything before or after'. filter_by and == only match the exact text, % signs included, and ilike('park') without the % signs only matches a name that is exactly 'park'.",
           "hints": [
             "Do you want an exact match or 'contains'?",
             "Which operator does pattern matching that ignores case?"
@@ -999,9 +999,9 @@
           "id": "viva-search-b",
           "question": "A Vue page already has all items loaded. What is the cleanest way to filter them as the user types?",
           "options": [
-            "Reload the page on every keystroke",
-            "Fetch the whole list again from Flask on every keystroke, with no filter",
-            "Put v-show on the search box",
+            "Reload the whole page on every keystroke so Flask sends back only the matching items",
+            "Fetch the whole list again from Flask on every keystroke, with no filter applied",
+            "Put v-show on the search box so it hides the items that don't match the text",
             "A computed property that returns only the items whose name includes the search text"
           ],
           "answer": 3,
@@ -1023,10 +1023,10 @@
           "id": "viva-vue-router-a",
           "question": "In a Vue single-page app, what does Vue Router do?",
           "options": [
-            "Sends API requests to Flask",
-            "Routes emails to users",
+            "Sends each API request from Vue to the matching Flask route for you",
+            "Routes notification emails to the right users when they log in",
             "Shows a different component for each URL without reloading the page",
-            "Speeds up Flask routes"
+            "Speeds up Flask routes by caching their responses in the browser"
           ],
           "answer": 2,
           "explanation": "Vue Router maps URLs like /admin or /login to components and swaps them in the browser, so the app feels like several pages while staying one page that never reloads.",
@@ -1039,9 +1039,9 @@
           "id": "viva-vue-router-b",
           "question": "Which Vue Router feature runs before every page change and can send a logged-out user to the login page?",
           "options": [
-            "router-link",
-            "A computed property",
-            "v-cloak",
+            "A router-link pointing at the login page",
+            "A computed property inside the root component",
+            "The v-cloak directive on the app's root element",
             "A navigation guard such as router.beforeEach"
           ],
           "answer": 3,
@@ -1071,10 +1071,10 @@
           "id": "viva-token-storage-a",
           "question": "Your Vue app keeps the login token in localStorage. What is the main risk?",
           "options": [
-            "It's deleted every time the page reloads",
-            "Flask can read the user's whole localStorage",
+            "It's deleted every time the page reloads, so the user keeps getting logged out",
+            "Flask can read the user's whole localStorage on every request the app sends",
             "Any JavaScript running on the page, including injected (XSS) code, can read it",
-            "localStorage can only hold numbers"
+            "localStorage can only hold numbers, so the token gets corrupted when it is saved"
           ],
           "answer": 2,
           "explanation": "localStorage is readable by any script on the page. If an attacker manages to inject a script (XSS), it can steal the token. That is the trade-off of keeping tokens there.",
@@ -1088,9 +1088,9 @@
           "question": "What is the difference between localStorage and sessionStorage for a token?",
           "options": [
             "sessionStorage is cleared when the tab closes; localStorage stays until it's removed",
-            "sessionStorage is sent to the server automatically",
-            "localStorage is encrypted and sessionStorage isn't",
-            "There is no difference"
+            "sessionStorage is sent to the server automatically with every request, like a cookie",
+            "localStorage is encrypted by the browser, while sessionStorage is stored as plain text",
+            "There is no difference: both are cleared as soon as the user closes the browser tab"
           ],
           "answer": 0,
           "explanation": "Both are readable by page scripts and neither is sent automatically. The difference is lifetime: sessionStorage disappears with the tab, localStorage survives restarts until cleared.",
@@ -1112,9 +1112,9 @@
           "question": "In Flask-SQLAlchemy, a User has many Bookings. Where does the foreign key column go?",
           "options": [
             "In the users table, as user.booking_id",
-            "In both tables",
+            "In both tables, as user_id and booking_id",
             "In the bookings table, as booking.user_id",
-            "In neither: db.relationship stores it"
+            "In neither: db.relationship stores the link"
           ],
           "answer": 2,
           "explanation": "In one-to-many, the 'many' side holds the foreign key. Each booking stores which user it belongs to (user_id). db.relationship is a Python convenience built on top of that column; it doesn't store anything itself.",
@@ -1127,9 +1127,9 @@
           "id": "viva-foreign-key-b",
           "question": "For 'a user has many bookings', a developer adds a booking_id column to the users table. What goes wrong?",
           "options": [
-            "SQLite refuses to create the column",
-            "Bookings can no longer be deleted",
-            "Nothing: both designs work the same",
+            "SQLite refuses to create the new booking_id column",
+            "Bookings can no longer be deleted from the table",
+            "Nothing: both designs work the same way in SQL",
             "Each user can then point to only one booking"
           ],
           "answer": 3,
@@ -1159,10 +1159,10 @@
           "id": "viva-async-await-a",
           "question": "Inside an async function, what does  await fetch(url)  do?",
           "options": [
-            "Freezes the whole browser until the request finishes",
-            "Sends the request twice",
+            "Freezes the whole browser tab until the request finishes and the data is back",
+            "Sends the request twice and keeps whichever response arrives back first",
             "Pauses that function until the request finishes, without freezing the page",
-            "Turns the request into a Celery task"
+            "Turns the request into a Celery task that runs in the background on the server"
           ],
           "answer": 2,
           "explanation": "await waits for the Promise to settle, but only inside that async function. The rest of the page keeps working while it waits.",
@@ -1176,9 +1176,9 @@
           "question": "You wrote  const res = fetch(url); const data = res.json();  and it fails. Why?",
           "options": [
             "fetch returns a Promise; without await, res isn't the response yet",
-            "fetch can't read JSON",
-            "res.json() only works in Flask",
-            "You must use axios for JSON"
+            "fetch can't read JSON, so you must parse the response with JSON.parse",
+            "res.json() only works in Flask, not in JavaScript running in the browser",
+            "You must use axios for JSON; fetch only supports plain text responses"
           ],
           "answer": 0,
           "explanation": "fetch returns a Promise immediately. Without await (or .then), res is that Promise, which has no json() method. Write const res = await fetch(url); const data = await res.json();",
@@ -1203,9 +1203,9 @@
           "id": "viva-v-model-a",
           "question": "What does v-model do on an input?",
           "options": [
-            "Only shows the data; typing changes nothing",
-            "Sends the value to Flask",
-            "Validates the input",
+            "One-way display: the input shows the data, but typing in it never changes the data",
+            "It sends the input's value to Flask every time the user types a new character",
+            "It validates the input and shows an error message when the value is not allowed",
             "Two-way binding: typing updates the data, and changing the data updates the input"
           ],
           "answer": 3,
@@ -1219,10 +1219,10 @@
           "id": "viva-v-model-b",
           "question": "What is the difference between  :value  (v-bind) and  v-model  on an input?",
           "options": [
-            "They are the same thing",
+            "They are the same thing: both keep the input and the data in sync in both directions",
             "v-bind only pushes data into the input; v-model also updates the data when the user types",
-            "v-bind is two-way and v-model is one-way",
-            "v-model only works on buttons"
+            "v-bind is two-way and v-model is one-way, so only v-bind changes the data when you type",
+            "v-model only works on buttons and checkboxes, while :value works on every other kind of input"
           ],
           "answer": 1,
           "explanation": "v-bind is one-way: data flows into the attribute. v-model is two-way: it also listens to input events and writes the typed value back to your data.",
@@ -1247,10 +1247,10 @@
           "id": "viva-v-for-key-a",
           "question": "Why give each item a :key in v-for?",
           "options": [
-            "Keys sort the list alphabetically",
+            "So Vue sorts the list alphabetically by key before it renders the items",
             "So Vue can track each item and update the list correctly and efficiently",
-            "Flask requires keys",
-            "Keys encrypt the items"
+            "Because Flask requires a key on every item it sends to the frontend",
+            "So Vue encrypts each item, keeping the list safe from other scripts"
           ],
           "answer": 1,
           "explanation": "A key gives every item a stable identity. When the list changes, Vue uses keys to know which element is which, so it reuses and moves the right ones instead of mixing them up.",
@@ -1288,9 +1288,9 @@
           "question": "Your Vue admin page hides the 'Delete user' button from normal users. Is that enough to stop a normal user deleting users?",
           "options": [
             "No: the Flask route must check the role too, because anyone can call the API directly",
-            "Yes: a hidden button can't be clicked",
-            "Yes, as long as the Vue code is minified",
-            "No: you must also hide the route's URL inside the JavaScript"
+            "Yes: a hidden button can't be clicked, so the delete request can never be sent at all",
+            "Yes, as long as the Vue code is minified so users can't find the delete function",
+            "No: you must also hide the route's URL inside the JavaScript so nobody can find it"
           ],
           "answer": 0,
           "explanation": "Hiding a button only changes what the page shows. Anyone can send a request straight to the API with a tool like Postman or the browser console. The real protection is a role check inside the Flask route.",
@@ -1303,10 +1303,10 @@
           "id": "viva-server-checks-b",
           "question": "A normal user sends DELETE /api/users/5 directly from Postman with their own valid token. What should a correctly built API return?",
           "options": [
-            "200 OK, and the user is deleted",
+            "200 OK, because the token is valid, so the user is deleted",
             "403 Forbidden, because the server checks the user's role",
-            "404 Not Found, always",
-            "302, redirecting to the Vue home page"
+            "404 Not Found, because the user's page is hidden in Vue",
+            "302 Found, redirecting the request to the Vue home page"
           ],
           "answer": 1,
           "explanation": "The token proves who they are, but their role doesn't allow deleting users. A server-side role check refuses the action with 403 Forbidden: authenticated, but not allowed.",
@@ -1336,9 +1336,9 @@
           "question": "In Celery, what is the result backend for?",
           "options": [
             "Storing each task's state and return value so you can check them later",
-            "Queueing new tasks",
-            "Running the task code",
-            "Scheduling tasks by time"
+            "Queueing new tasks until a worker is free to pick them up and run them",
+            "Running each task's Python code in a separate process from Flask",
+            "Scheduling tasks so they run at set times, such as every morning"
           ],
           "answer": 0,
           "explanation": "The broker queues tasks, workers run them, Beat schedules them, and the result backend records each task's status and result, for example so the frontend can ask whether an export has finished.",
@@ -1379,10 +1379,10 @@
           "id": "viva-email-a",
           "question": "Why use MailHog while developing email reminders?",
           "options": [
-            "It sends emails faster than Gmail",
-            "Celery can't run without it",
+            "It's a faster mail service than Gmail, so your reminder emails reach real students in seconds",
+            "It's a Celery add-on that Celery needs before it can run any task that sends email",
             "It's a fake SMTP server that catches emails so you can see them without sending real mail",
-            "It stores user passwords"
+            "It's a secure store for user passwords that the email reminder tasks need to log in"
           ],
           "answer": 2,
           "explanation": "MailHog accepts emails over SMTP and shows them in a web page instead of delivering them, so you can test reminders and reports safely.",
@@ -1426,7 +1426,7 @@
             "GET",
             "DELETE",
             "HEAD",
-            "PUT (or PATCH)"
+            "PUT"
           ],
           "answer": 3,
           "explanation": "GET only reads, DELETE removes and HEAD fetches headers. PUT replaces a record and PATCH changes part of it, so updating uses PUT or PATCH.",
@@ -1439,10 +1439,10 @@
           "id": "viva-http-methods-b",
           "question": "What is the difference between PUT and PATCH?",
           "options": [
-            "PATCH creates records and PUT deletes them",
+            "PATCH creates new records, while PUT deletes the record you name",
             "PUT replaces the whole record; PATCH changes only the fields you send",
-            "They mean exactly the same in REST",
-            "PUT is only for uploading files"
+            "They mean exactly the same in REST: both update any fields you send",
+            "PUT is only for uploading files; PATCH is for every other kind of update"
           ],
           "answer": 1,
           "explanation": "With PUT you send the full new version of the record. With PATCH you send just the fields that change, and the rest stay as they were.",
@@ -1463,9 +1463,9 @@
           "id": "viva-authn-authz-a",
           "question": "What is the difference between authentication and authorization?",
           "options": [
-            "They mean the same thing",
-            "Authentication is for admins, authorization is for users",
-            "Authorization always happens before authentication",
+            "They mean the same thing: both check the user's password before every request",
+            "Authentication is the login for admins; authorization is the login for normal users",
+            "Authorization always happens first, and authentication only runs if it succeeds",
             "Authentication checks who you are; authorization checks what you are allowed to do"
           ],
           "answer": 3,
@@ -1480,9 +1480,9 @@
           "question": "A logged-in student opens the admin dashboard and the API refuses. Which check refused them?",
           "options": [
             "Authorization: the server knows who they are, but they aren't allowed",
-            "Authentication: the server doesn't know who they are",
-            "Encryption: their password wasn't hashed",
-            "Caching: the dashboard was out of date"
+            "Authentication: the server doesn't know who they are, so it refuses",
+            "Encryption: their password wasn't hashed, so the server rejected it",
+            "Caching: the admin dashboard was out of date, so it was blocked"
           ],
           "answer": 0,
           "explanation": "They are logged in, so authentication succeeded. The refusal comes from the role check, which is authorization, usually answered with 403 Forbidden.",
@@ -1511,10 +1511,10 @@
           "id": "viva-status-codes-a",
           "question": "What is the difference between 401 and 403?",
           "options": [
-            "They mean the same thing",
+            "They mean the same thing: both just say the request was refused by the server",
             "401: not authenticated (no or bad token); 403: authenticated but not allowed",
-            "401 is a server crash; 403 is a missing page",
-            "403 means the token expired; 401 means wrong role"
+            "401 means the server crashed; 403 means the page you asked for is missing",
+            "403: the token has expired; 401: the token is valid but has the wrong role"
           ],
           "answer": 1,
           "explanation": "401 Unauthorized means the server doesn't know who you are. 403 Forbidden means it knows who you are, but you aren't allowed to do this.",
@@ -1556,9 +1556,9 @@
           "question": "Why use a store such as Vuex or Pinia?",
           "options": [
             "To keep shared state, like the logged-in user, in one place many components can read and update",
-            "To save data permanently in the database",
-            "To replace Vue Router",
-            "To cache API responses in Redis"
+            "To save all of the app's data permanently in the SQL database, so it survives every server restart",
+            "To replace Vue Router, so the app can switch between pages without needing any URLs",
+            "To cache API responses in Redis, so the components don't need to call Flask as often"
           ],
           "answer": 0,
           "explanation": "A store holds state that several components need. Each component reads from it and changes it in one place, instead of passing data through long chains of props.",
@@ -1616,9 +1616,9 @@
           "question": "How does a child component tell its parent that a button was clicked?",
           "options": [
             "It emits an event with $emit, and the parent listens with @event-name",
-            "It changes the parent's props directly",
-            "It writes to the database",
-            "It calls Flask"
+            "It changes the parent's props directly, and the parent sees the new value",
+            "It writes the click to the database, and the parent reads it from there",
+            "It calls a Flask route, which sends the click back to the parent component"
           ],
           "answer": 0,
           "explanation": "Data goes down as props and events go up with $emit. Children shouldn't change props directly; they emit an event and let the parent decide.",
@@ -1643,9 +1643,9 @@
           "id": "viva-computed-a",
           "question": "What is the main difference between a Vue computed property and a method used in a template?",
           "options": [
-            "Methods can't return values",
-            "Computed properties run on the server",
-            "There is no difference",
+            "Methods can't return values, so a template can only display computed properties",
+            "Computed properties run on the server, while methods run in the user's browser",
+            "There is no difference: both rerun on every render and give the same performance",
             "A computed property is cached and only recalculates when its dependencies change"
           ],
           "answer": 3,
@@ -1659,10 +1659,10 @@
           "id": "viva-computed-b",
           "question": "A template shows {{ expensiveTotal() }} for a long list, and typing in an unrelated input makes the page lag. What is the best fix?",
           "options": [
-            "Move it into a watcher that runs on every keystroke",
+            "Move the total into a watcher that recalculates on every keystroke",
             "Make expensiveTotal a computed property so its result is cached",
-            "Call it twice to warm it up",
-            "Use v-show instead of v-if"
+            "Call it twice in the template so the second call is warmed up",
+            "Wrap the list in v-show instead of v-if so it renders less"
           ],
           "answer": 1,
           "explanation": "Each keystroke re-renders the template, which calls the method and redoes the heavy sum. As a computed property, the total is cached and only recalculated when the list changes.",
@@ -1687,10 +1687,10 @@
           "id": "viva-v-if-show-a",
           "question": "What is the difference between v-if and v-show?",
           "options": [
-            "They are identical",
+            "They are identical: both add and remove the element from the page as it changes",
             "v-if adds or removes the element; v-show keeps it and toggles its CSS display",
-            "v-show removes the element; v-if only hides it",
-            "v-if only works on lists"
+            "v-show removes the element from the page; v-if only hides it with CSS display",
+            "v-if only works on lists, while v-show works on any element in the template"
           ],
           "answer": 1,
           "explanation": "When v-if is false the element isn't in the page at all. v-show always renders it and just switches display: none on and off.",
@@ -1703,9 +1703,9 @@
           "id": "viva-v-if-show-b",
           "question": "A panel is opened and closed very often. Which is usually the better choice?",
           "options": [
-            "v-if, because it is always faster",
-            "v-for",
-            "v-cloak",
+            "v-if, because removing the element each time is always faster than hiding it",
+            "v-for, because it renders the panel again each time it is opened or closed",
+            "v-cloak, because it hides the panel until Vue has finished opening it",
             "v-show, because it only toggles display instead of rebuilding the element"
           ],
           "answer": 3,
@@ -1732,9 +1732,9 @@
           "question": "In Vue, why does changing a data property automatically update the page?",
           "options": [
             "Vue tracks which parts of the template use that property and re-renders them when it changes",
-            "The browser reloads the page",
-            "Flask sends fresh HTML",
-            "You call render() yourself after every change"
+            "The browser quietly reloads the whole page in the background whenever any data property changes",
+            "Flask notices the change and sends fresh HTML for the page back to the browser right away",
+            "Vue calls render() on a timer every few milliseconds, whether or not anything has changed"
           ],
           "answer": 0,
           "explanation": "Properties declared in data() are reactive: Vue records where the template uses them and updates exactly those parts when they change. No reload or server round trip is involved.",
@@ -1747,10 +1747,10 @@
           "id": "viva-reactivity-b",
           "question": "In the Vue Options API, a method sets this.count = 5, but the page doesn't update. count was never declared in data(). Why?",
           "options": [
-            "Methods are not allowed to change data",
-            "You must use v-if instead of {{ }}",
+            "Methods are not allowed to change data, so Vue ignores the line",
+            "You must use v-if instead of {{ }} to show values set in methods",
             "count isn't in data(), so Vue isn't tracking it for changes",
-            "Vue only updates after a page reload"
+            "Vue only updates the page after a reload, so it shows the old value"
           ],
           "answer": 2,
           "explanation": "Vue only tracks properties it knows about from data(). A property added later is a plain value with no tracking, so changing it doesn't re-render. Declare count in data() first.",
@@ -1775,10 +1775,10 @@
           "id": "viva-cors-a",
           "question": "Your Vue app on localhost:5173 calls your Flask API on localhost:5000, and the browser blocks the response with a CORS error. Why?",
           "options": [
-            "Flask can't send JSON to Vue",
-            "The request used GET instead of POST",
+            "Flask can't send JSON to Vue, so the browser blocks any JSON response coming from the API",
+            "The request used GET instead of POST, and browsers block cross-site GET requests by default",
             "Different ports are different origins, and the API didn't send headers allowing that origin",
-            "localhost is not allowed to call APIs"
+            "localhost is not allowed to call APIs, so the browser blocks every request sent from it"
           ],
           "answer": 2,
           "explanation": "An origin is scheme + host + port, so :5173 and :5000 are different origins. The browser only lets the page read the response if the API answers with Access-Control-Allow-Origin for that origin.",
@@ -1792,9 +1792,9 @@
           "question": "Which side has to change to fix a CORS error when your Vue app calls your Flask API?",
           "options": [
             "The Flask API, by sending Access-Control-Allow-Origin for the Vue app's origin",
-            "The Vue app, by adding a CORS header to its request",
-            "Each user, by changing their browser settings",
-            "Both, by switching every request from JSON to form data"
+            "The Vue app, by adding an Access-Control-Allow-Origin header to its own request",
+            "Each user, by turning off the CORS setting in their own browser's preferences",
+            "Both, by switching every request from JSON to form data so the check is skipped"
           ],
           "answer": 0,
           "explanation": "CORS is the server giving the browser permission. The API's response must include Access-Control-Allow-Origin (for example via Flask-CORS); headers added by the frontend can't grant that permission.",
