@@ -32,6 +32,14 @@ PROVIDERS = {
         "model_env": "GROQ_MODEL",
         "default_model": "openai/gpt-oss-120b",
     },
+    # Optional second Groq step: same key, a different model with its own rate limits.
+    # Set GROQ_MODEL_2 to an empty value to skip it.
+    "groq2": {
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "key_env": "GROQ_API_KEY",
+        "model_env": "GROQ_MODEL_2",
+        "default_model": "openai/gpt-oss-20b",
+    },
     "nvidia": {
         "url": "https://integrate.api.nvidia.com/v1/chat/completions",
         "key_env": "NVIDIA_API_KEY",
@@ -60,6 +68,8 @@ Rules you must never break:
 - Never say which option is right or which options are wrong.
 - Ask exactly one short guiding question per reply, under 60 words.
 - Build on what the student just said. Do not lecture.
+- Only refer to what the student has actually written in this chat; on your first message they have only picked an option.
+  Never say "you mentioned", "you said" or "you think" about the option they picked; call it "the option you picked" if needed.
 - If the student says they don't know or seems stuck, make your next question more concrete and
   narrower: point them straight at the key idea or fact they need, still without naming the answer.
 Write plain text only: no markdown, no asterisks, no headings, no bullet symbols."""
@@ -102,9 +112,16 @@ def leaks_answer(text, q):
 
 # ---------- talking to the AI providers ----------
 
+def _model(name):
+    """The provider's model: its *_MODEL env var, the default if unset, "" if set empty."""
+    p = PROVIDERS[name]
+    return os.getenv(p["model_env"], p["default_model"]).strip()
+
+
 def provider_order():
-    names = os.getenv("PROVIDER_ORDER", "groq,nvidia,gemini").split(",")
-    return [n.strip() for n in names if n.strip() in PROVIDERS and os.getenv(PROVIDERS[n.strip()]["key_env"])]
+    """Providers to try, in order: known, with a key set, and with a non-empty model."""
+    names = [n.strip() for n in os.getenv("PROVIDER_ORDER", "groq,groq2,gemini,nvidia").split(",")]
+    return [n for n in names if n in PROVIDERS and os.getenv(PROVIDERS[n]["key_env"]) and _model(n)]
 
 
 def _strip_thinking(text):
@@ -121,7 +138,7 @@ def _strip_thinking(text):
 
 def _call(name, messages):
     p = PROVIDERS[name]
-    model = os.getenv(p["model_env"], p["default_model"])
+    model = _model(name)
     if "nemotron" in model.lower():  # Nemotron thinks out loud unless told not to
         messages = [{"role": "system", "content": "/no_think\n" + messages[0]["content"]}] + messages[1:]
     payload = {"model": model, "messages": messages, "max_tokens": MAX_TOKENS, "temperature": 0.3}

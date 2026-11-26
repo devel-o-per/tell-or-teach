@@ -9,27 +9,35 @@ Four flags live in Flagsmith:
 import json
 import logging
 import os
+import threading
 
 log = logging.getLogger(__name__)
 
 DEFAULT_LIMITS = {"max_turns": 3, "daily_cap": 40}
 _client = None
+_client_lock = threading.Lock()
 
 
 def client():
-    """Create the Flagsmith client once, with events turned on."""
+    """Create the Flagsmith client once per process, with events turned on.
+
+    The lock stops two request threads from each building a client (and its
+    background event thread) at the same moment under gunicorn --threads.
+    """
     global _client
     if _client is None:
-        key = os.getenv("FLAGSMITH_SERVER_KEY")
-        if not key:
-            log.warning("FLAGSMITH_SERVER_KEY is not set: every student gets the written Tell content")
-            return None
-        from flagsmith import Flagsmith
+        with _client_lock:
+            if _client is None:
+                key = os.getenv("FLAGSMITH_SERVER_KEY")
+                if not key:
+                    log.warning("FLAGSMITH_SERVER_KEY is not set: every student gets the written Tell content")
+                    return None
+                from flagsmith import Flagsmith
 
-        kwargs = {"environment_key": key, "enable_events": True}
-        if os.getenv("FLAGSMITH_API_URL"):  # only for self-hosted Flagsmith
-            kwargs["api_url"] = os.environ["FLAGSMITH_API_URL"]
-        _client = Flagsmith(**kwargs)
+                kwargs = {"environment_key": key, "enable_events": True}
+                if os.getenv("FLAGSMITH_API_URL"):  # only for self-hosted Flagsmith
+                    kwargs["api_url"] = os.environ["FLAGSMITH_API_URL"]
+                _client = Flagsmith(**kwargs)
     return _client
 
 
