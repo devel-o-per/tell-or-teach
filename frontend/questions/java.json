@@ -1,0 +1,120 @@
+{
+  "subject": "java",
+  "title": "Java OPPE warm-up",
+  "concepts": [
+    {
+      "id": "java-string-equality",
+      "topic": "Strings",
+      "twins": [
+        {
+          "id": "java-string-equality-a",
+          "question": "In Java, what does s1 == s2 compare when s1 and s2 are String objects?",
+          "options": [
+            "Whether their characters are the same",
+            "Their lengths",
+            "Whether both variables refer to the same object",
+            "Their hash codes"
+          ],
+          "answer": 2,
+          "explanation": "For objects, == compares references: it is true only when both variables point to the very same object. To compare the characters, use s1.equals(s2).",
+          "hints": [
+            "For objects, does == look inside them, or at where they live?",
+            "Which method would you call if you wanted to compare the characters instead?"
+          ]
+        },
+        {
+          "id": "java-string-equality-b",
+          "question": "String a = new String(\"hi\");\nString b = new String(\"hi\");\nSystem.out.println(a.equals(b) && a != b);\n\nWhat is printed?",
+          "options": [
+            "true",
+            "false",
+            "Compilation error",
+            "A runtime exception"
+          ],
+          "answer": 0,
+          "explanation": "a.equals(b) compares characters, so it is true. Each new String(...) creates a separate object, so a != b is also true. true && true prints true.",
+          "hints": [
+            "Work out a.equals(b) first. What does equals compare?",
+            "Now a != b: did 'new' create one object or two?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "java-overriding",
+      "topic": "Polymorphism",
+      "twins": [
+        {
+          "id": "java-overriding-a",
+          "question": "Animal a = new Dog();\na.speak();\n\nDog overrides speak(). Which version runs?",
+          "options": [
+            "Animal's speak()",
+            "Dog's speak()",
+            "Both, Animal's first",
+            "It does not compile"
+          ],
+          "answer": 1,
+          "explanation": "For overridden methods Java picks the version from the actual object's class at run time (dynamic dispatch). The object is a Dog, so Dog's speak() runs, even though the variable's type is Animal.",
+          "hints": [
+            "What type is the variable, and what type is the object it points to?",
+            "For an overridden method, which of those two does Java look at when the program runs?"
+          ]
+        },
+        {
+          "id": "java-overriding-b",
+          "question": "class A { void show() { System.out.print(\"A\"); } }\nclass B extends A { void show() { System.out.print(\"B\"); } }\n\nA obj = new B();\nobj.show();\n\nWhat is printed?",
+          "options": [
+            "A",
+            "AB",
+            "Compilation error",
+            "B"
+          ],
+          "answer": 3,
+          "explanation": "obj has type A but refers to a B object. show() is overridden in B, and Java chooses the overriding method from the real object at run time, so it prints B.",
+          "hints": [
+            "Which class's object was actually created with new?",
+            "When a method is overridden, does Java use the variable's type or the object's type at run time?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "java-static",
+      "topic": "Static members",
+      "twins": [
+        {
+          "id": "java-static-a",
+          "question": "A static field in a Java class is…",
+          "options": [
+            "Shared by all objects of that class",
+            "Copied into every object separately",
+            "Only visible inside main()",
+            "Recreated every time a method is called"
+          ],
+          "answer": 0,
+          "explanation": "A static field belongs to the class itself, not to any one object. There is a single copy, and every object of the class reads and writes that same copy.",
+          "hints": [
+            "Does a static field belong to the class or to each object?",
+            "If there is only one copy, who shares it?"
+          ]
+        },
+        {
+          "id": "java-static-b",
+          "question": "class C {\n  static int n = 0;\n  C() { n++; }\n}\n\nAfter creating three C objects, what is C.n?",
+          "options": [
+            "1",
+            "0",
+            "3",
+            "Compilation error"
+          ],
+          "answer": 2,
+          "explanation": "n is static, so all objects share one copy. Each constructor call adds 1 to that same copy: three objects make n equal 3.",
+          "hints": [
+            "How many copies of n exist: one per object, or one in total?",
+            "Each constructor adds one to n. How many constructors ran?"
+          ]
+        }
+      ]
+    }
+  ]
+}

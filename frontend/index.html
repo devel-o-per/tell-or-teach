@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Tell Me or Teach Me</title>
+  <meta name="description" content="Free practice questions with an AI tutor. Part of a small experiment on how tutors should help after a mistake.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<div id="app" v-cloak>
+
+  <!-- START -->
+  <main v-if="screen === 'start'" class="wrap start">
+    <h1>Tell Me or Teach Me</h1>
+    <p class="lede">Ten quick practice questions. Get one wrong and an AI tutor helps you fix it, then the idea comes back later to check it stuck.</p>
+
+    <p v-if="groupCount" class="count">{{ groupCount }} {{ groupCount === 1 ? 'student' : 'students' }} practised here today</p>
+
+    <div class="subjects">
+      <button v-for="s in subjects" :key="s" class="subject" @click="start(s)">
+        {{ subjectName(s) }}
+      </button>
+      <p v-if="!subjects.length" class="muted">Loading subjects…</p>
+    </div>
+    <p v-if="loadError" class="error">{{ loadError }}</p>
+
+    <p class="consent">
+      This app is part of a small experiment on how a tutor should help after a mistake.
+      Both ways of helping are standard teaching methods. We store a random ID, your answers and your tutor chat,
+      never your name or number. Please don't type personal information in the chat.
+      Results will be shared with the group on Sunday.
+    </p>
+  </main>
+
+  <!-- QUIZ -->
+  <main v-else-if="screen === 'quiz' && q" class="wrap quiz">
+    <div class="bar">
+      <span>{{ subjectName(subject) }}</span>
+      <span>Question {{ session.shown }}</span>
+    </div>
+
+    <p v-if="isComeback" class="comeback">Comeback: an idea you missed earlier, asked a new way</p>
+
+    <h2 class="question">{{ q.question }}</h2>
+
+    <div class="options">
+      <button v-for="(opt, i) in q.options" :key="i" class="option" :class="optionClass(i)"
+              :disabled="submitted && !tutor.retry.active" @click="pick(i)">
+        <b>{{ letters[i] }}</b><span>{{ opt }}</span>
+      </button>
+    </div>
+
+    <div v-if="!submitted" class="confidence">
+      <p>How sure are you?</p>
+      <div class="pair">
+        <button :class="{ on: confidence === 'sure' }" @click="confidence = 'sure'">Sure</button>
+        <button :class="{ on: confidence === 'guess' }" @click="confidence = 'guess'">Guessing</button>
+      </div>
+      <button class="primary" :disabled="selected === null || !confidence" @click="submit">Check answer</button>
+    </div>
+
+    <div v-else-if="correct" class="feedback good">
+      <p v-if="isComeback"><b>Comeback won.</b> That idea stuck.</p>
+      <p v-else><b>Correct.</b></p>
+    </div>
+
+    <div v-else-if="isComeback" class="feedback">
+      <p><b>Not quite this time.</b> {{ q.explanation }}</p>
+    </div>
+
+    <!-- TUTOR -->
+    <section v-if="tutor.open" class="tutor">
+      <p class="tutor-title">Tutor</p>
+      <div v-for="(m, i) in tutor.messages" :key="i" class="msg" :class="m.role">{{ m.content }}</div>
+      <div v-if="tutor.loading" class="msg assistant typing"><span></span><span></span><span></span></div>
+
+      <form v-if="canChat" class="chat" @submit.prevent="sendChat">
+        <input v-model="tutor.input" maxlength="300"
+               :placeholder="effectiveStyle === 'teach' ? 'Answer the tutor…' : 'Ask a follow-up (optional)'"
+               aria-label="Message the tutor">
+        <button type="submit" :disabled="!tutor.input.trim()">Send</button>
+      </form>
+
+      <div v-if="canRetry" class="retry">
+        <button class="primary" @click="startRetry">I think I've got it: try again</button>
+      </div>
+      <div v-if="tutor.retry.active" class="retry">
+        <p>Pick an option above, then check.</p>
+        <button class="primary" :disabled="tutor.retry.pick === null" @click="submitRetry">Check my second try</button>
+      </div>
+      <div v-if="tutor.retry.done" class="feedback" :class="{ good: tutor.retry.correct }">
+        <p v-if="tutor.retry.correct"><b>You worked it out.</b></p>
+        <p v-else><b>The answer is {{ letters[q.answer] }}.</b> {{ q.explanation }}</p>
+      </div>
+    </section>
+
+    <button v-if="canContinue" class="primary next" @click="next">Next question</button>
+  </main>
+
+  <!-- RECEIPT -->
+  <main v-else-if="screen === 'receipt'" class="wrap receipt">
+    <h1>Your learning receipt</h1>
+    <div class="stats">
+      <div><b>{{ receipt.answered }}</b><span>answers</span></div>
+      <div><b>{{ receipt.firstTry }}</b><span>right first time</span></div>
+      <div><b>{{ receipt.comebacksWon }}/{{ receipt.comebacksTotal }}</b><span>comebacks won</span></div>
+    </div>
+    <div v-if="receipt.fixed.length" class="list">
+      <h3>Ideas you fixed today</h3>
+      <ul><li v-for="t in receipt.fixed" :key="t">{{ t }}</li></ul>
+    </div>
+    <div v-if="receipt.stillShaky.length" class="list">
+      <h3>Worth another look</h3>
+      <ul><li v-for="t in receipt.stillShaky" :key="t">{{ t }}</li></ul>
+    </div>
+    <button class="primary" @click="again">Practise another subject</button>
+    <button class="ghost" @click="copyLink">{{ copied === true ? 'Link copied' : 'Copy link for a friend' }}</button>
+    <p v-if="copied && copied !== true" class="muted break">{{ copied }}</p>
+  </main>
+</div>
+
+<script src="https://unpkg.com/vue@3.5.13/dist/vue.global.prod.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@flagsmith/flagsmith@12.6.0/index.js"></script>
+<script src="config.js"></script>
+<script src="quiz.js"></script>
+<script src="flags.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

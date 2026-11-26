@@ -1,0 +1,120 @@
+{
+  "subject": "viva",
+  "title": "App Dev viva warm-up",
+  "concepts": [
+    {
+      "id": "viva-celery",
+      "topic": "Background jobs",
+      "twins": [
+        {
+          "id": "viva-celery-a",
+          "question": "In a Flask app, why would you use Celery to send monthly report emails?",
+          "options": [
+            "To store user sessions securely",
+            "To run the slow job in the background so web requests stay fast",
+            "To render Vue templates on the server",
+            "To replace the database for large reports"
+          ],
+          "answer": 1,
+          "explanation": "Building and emailing reports is slow. If a web request did it, the user would wait. Celery runs such jobs in a separate worker process, so the web app answers quickly and the job finishes in the background.",
+          "hints": [
+            "Think about what would happen to the user's page if the server built every report inside the request.",
+            "Celery runs work in a separate worker. What does that free the web server to do?"
+          ]
+        },
+        {
+          "id": "viva-celery-b",
+          "question": "A user clicks 'Export CSV' and the page freezes for 40 seconds while the file is built. What is the best fix?",
+          "options": [
+            "Increase the browser's timeout",
+            "Move the export code into the Vue component",
+            "Store the CSV in Redis permanently",
+            "Hand the export to a Celery task and notify the user when it's ready"
+          ],
+          "answer": 3,
+          "explanation": "The page freezes because slow work runs inside the request. Sending it to a Celery task lets the request return at once; the worker builds the file and the app notifies the user or offers a download when it is done.",
+          "hints": [
+            "Why is the page frozen? Where is the slow work happening right now?",
+            "Which tool in your stack is designed to run slow work outside the request?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "viva-redis-cache",
+      "topic": "Caching",
+      "twins": [
+        {
+          "id": "viva-redis-cache-a",
+          "question": "What does caching an API response in Redis mainly improve?",
+          "options": [
+            "The speed of repeated requests",
+            "The security of stored passwords",
+            "The design of the database schema",
+            "The styling of the frontend"
+          ],
+          "answer": 0,
+          "explanation": "Redis keeps data in memory. When the same response is requested again, it can be returned from Redis instead of recomputing it or querying the database, so repeated requests are much faster.",
+          "hints": [
+            "Where does Redis keep its data, and why does that matter?",
+            "What happens the second time someone asks for the same response?"
+          ]
+        },
+        {
+          "id": "viva-redis-cache-b",
+          "question": "Your dashboard runs the same heavy SQL query for every visitor, but the data only changes once an hour. What helps most?",
+          "options": [
+            "Run the query twice to be safe",
+            "Switch the route from GET to POST",
+            "Cache the result in Redis with a one-hour expiry",
+            "Add more Vue components to the dashboard"
+          ],
+          "answer": 2,
+          "explanation": "The result is the same for an hour, so computing it once and serving it from Redis avoids repeating the heavy query. An expiry of one hour makes sure visitors get fresh data after it changes.",
+          "hints": [
+            "If the answer is the same for a whole hour, how many times do you really need to compute it?",
+            "Where could you keep that computed answer so every visitor can reuse it, and for how long?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "viva-http-methods",
+      "topic": "REST APIs",
+      "twins": [
+        {
+          "id": "viva-http-methods-a",
+          "question": "Which HTTP method should an API use to update an existing record's details?",
+          "options": [
+            "GET",
+            "PUT (or PATCH)",
+            "DELETE",
+            "HEAD"
+          ],
+          "answer": 1,
+          "explanation": "GET only reads, DELETE removes and HEAD fetches headers. PUT replaces a record and PATCH changes part of it, so updating an existing record uses PUT or PATCH.",
+          "hints": [
+            "Which methods only read data, and which ones change it?",
+            "Of the methods that change data, which one doesn't remove anything?"
+          ]
+        },
+        {
+          "id": "viva-http-methods-b",
+          "question": "A Flask route deletes a record but is called with GET. What is the main problem?",
+          "options": [
+            "GET requests cannot carry an ID",
+            "Flask does not support GET routes",
+            "GET is always slower than POST",
+            "GET should never change data: links, prefetching or crawlers could trigger the delete"
+          ],
+          "answer": 3,
+          "explanation": "GET is meant to be safe: it should only read. Browsers prefetch links, crawlers follow them and caches replay them, so a GET that deletes data can be triggered by accident. Changes belong in POST, PUT, PATCH or DELETE.",
+          "hints": [
+            "What is GET supposed to do, and what is this route actually doing?",
+            "Who else besides your user might open a GET link without meaning to?"
+          ]
+        }
+      ]
+    }
+  ]
+}

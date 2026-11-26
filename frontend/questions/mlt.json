@@ -1,0 +1,120 @@
+{
+  "subject": "mlt",
+  "title": "Machine Learning Techniques",
+  "concepts": [
+    {
+      "id": "mlt-ridge-lambda",
+      "topic": "Ridge regression",
+      "twins": [
+        {
+          "id": "mlt-ridge-lambda-a",
+          "question": "In ridge regression, what happens to the learned weights as the regularisation strength λ increases?",
+          "options": [
+            "They grow larger to fit the data better",
+            "They shrink towards zero",
+            "They are not affected by λ",
+            "They all become exactly zero once λ > 1"
+          ],
+          "answer": 1,
+          "explanation": "Ridge adds λ‖w‖² to the loss. A larger λ makes big weights more expensive, so the best solution moves towards smaller weights. They shrink towards zero but usually don't become exactly zero; that is lasso's behaviour.",
+          "hints": [
+            "Look at the extra term ridge adds to the loss. What does it punish?",
+            "If λ makes that punishment stronger, how would the weights change to keep the total loss low?"
+          ]
+        },
+        {
+          "id": "mlt-ridge-lambda-b",
+          "question": "A ridge regression model is underfitting: both training and test error are high. Which change is most likely to help?",
+          "options": [
+            "Increase λ",
+            "Increase λ and remove some features",
+            "Decrease λ",
+            "Keep λ and train for more epochs"
+          ],
+          "answer": 2,
+          "explanation": "Underfitting means the model is too constrained. In ridge, λ is what constrains the weights. Lowering λ lets the weights take larger values so the model can fit the data more closely.",
+          "hints": [
+            "Underfitting means the model is held back too much. Which part of ridge holds it back?",
+            "If λ controls how strongly the weights are held back, which direction loosens that hold?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mlt-knn-k",
+      "topic": "k-nearest neighbours",
+      "twins": [
+        {
+          "id": "mlt-knn-k-a",
+          "question": "In k-nearest neighbours classification, what typically happens to the decision boundary as k increases from 1 to a larger value?",
+          "options": [
+            "It becomes more jagged and overfits more",
+            "It stays exactly the same",
+            "It becomes smoother",
+            "It disappears because neighbours are ignored"
+          ],
+          "answer": 2,
+          "explanation": "With k = 1 each prediction copies the single closest point, so the boundary bends around every training point. A larger k takes a vote over more neighbours, which averages out noise and gives a smoother boundary.",
+          "hints": [
+            "With k = 1, how many training points decide each prediction?",
+            "What happens to the effect of one noisy point when many neighbours vote together?"
+          ]
+        },
+        {
+          "id": "mlt-knn-k-b",
+          "question": "A 1-nearest-neighbour classifier gets 100% training accuracy but poor test accuracy. What is the usual first fix?",
+          "options": [
+            "Increase k",
+            "Keep k = 1 and add more features",
+            "Duplicate every training point",
+            "Use a smaller training set"
+          ],
+          "answer": 0,
+          "explanation": "Perfect training accuracy with poor test accuracy is overfitting. With k = 1 the model follows every noisy point. Increasing k makes each prediction a vote of several neighbours, which reduces this variance.",
+          "hints": [
+            "Perfect training accuracy but poor test accuracy: what is that problem called?",
+            "Which setting of k makes a single noisy neighbour matter less?"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "mlt-entropy",
+      "topic": "Decision trees",
+      "twins": [
+        {
+          "id": "mlt-entropy-a",
+          "question": "What is the entropy of a decision-tree node where every sample belongs to the same class?",
+          "options": [
+            "1",
+            "0.5",
+            "It depends on the number of samples",
+            "0"
+          ],
+          "answer": 3,
+          "explanation": "Entropy measures how mixed the classes in a node are. If every sample is the same class there is no uncertainty at all: −1 × log₂(1) = 0.",
+          "hints": [
+            "Entropy measures uncertainty. How uncertain are you about the class of a sample from this node?",
+            "Try the formula with one class that has probability 1. What is log₂(1)?"
+          ]
+        },
+        {
+          "id": "mlt-entropy-b",
+          "question": "A split produces a child node containing only 'yes' samples. How should that child's impurity be described?",
+          "options": [
+            "Maximum impurity, because all samples agree",
+            "Zero impurity, it is a pure node",
+            "Half impurity, because there are two classes in the problem",
+            "Undefined, because one class is missing"
+          ],
+          "answer": 1,
+          "explanation": "Impurity measures how mixed a node is. A node holding only one class is not mixed at all, so its entropy (and Gini impurity) is zero. This is exactly what a good split aims for.",
+          "hints": [
+            "Impurity measures how mixed the classes in a node are. How mixed is this node?",
+            "If you picked any sample from this node, how sure would you be of its class?"
+          ]
+        }
+      ]
+    }
+  ]
+}
