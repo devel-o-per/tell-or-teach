@@ -30,7 +30,7 @@ PROVIDERS = {
         "url": "https://api.groq.com/openai/v1/chat/completions",
         "key_env": "GROQ_API_KEY",
         "model_env": "GROQ_MODEL",
-        "default_model": "llama-3.3-70b-versatile",
+        "default_model": "openai/gpt-oss-120b",
     },
     "nvidia": {
         "url": "https://integrate.api.nvidia.com/v1/chat/completions",
@@ -50,7 +50,8 @@ TELL_PROMPT = """You are a friendly tutor for university students.
 The student just answered a multiple-choice question incorrectly.
 Explain clearly why the correct answer is right and why the student's choice is wrong.
 Use plain language, under 120 words, no headings.
-If the student asks a follow-up question, answer it directly in under 80 words."""
+If the student asks a follow-up question, answer it directly in under 80 words.
+Write plain text only: no markdown, no asterisks, no headings, no bullet symbols."""
 
 TEACH_PROMPT = """You are a Socratic tutor for university students.
 The student just answered a multiple-choice question incorrectly. Help them find the answer themselves.
@@ -58,10 +59,17 @@ Rules you must never break:
 - Never state the correct option letter or the correct option's text.
 - Never say which option is right or which options are wrong.
 - Ask exactly one short guiding question per reply, under 60 words.
-- Build on what the student just said. Do not lecture."""
+- Build on what the student just said. Do not lecture.
+- If the student says they don't know or seems stuck, make your next question more concrete and
+  narrower: point them straight at the key idea or fact they need, still without naming the answer.
+Write plain text only: no markdown, no asterisks, no headings, no bullet symbols."""
 
 STRICT_NOTE = """Your previous draft revealed the answer. Rewrite it.
 Do not mention any option letter or any option's wording at all. Ask one guiding question only."""
+
+LAST_TURN_NOTE = """This is your last message before the student tries again.
+Give your most helpful hint, phrased as a question, still without naming the answer,
+and end by inviting them to pick an option again."""
 
 WRITTEN_RETRY = "Have another go: pick an option again."
 
@@ -103,6 +111,8 @@ def _strip_thinking(text):
     text = re.sub(r"<think>.*?</think>", "", text or "", flags=re.S)
     if "</think>" in text:
         text = text.split("</think>", 1)[1]
+    text = re.sub(r"\*\*(.+?)\*\*", r"\1", text)
+    text = re.sub(r"^#+\s*", "", text, flags=re.M)
     return text.strip()
 
 
@@ -144,7 +154,7 @@ def call_chain(messages):
     return None
 
 
-def build_messages(style, q, chosen, history, message, strict=False):
+def build_messages(style, q, chosen, history, message, strict=False, last=False):
     options = "\n".join(f"{LETTERS[i]}) {opt}" for i, opt in enumerate(q["options"]))
     context = (
         f"Question: {q['question']}\nOptions:\n{options}\n"
@@ -155,6 +165,8 @@ def build_messages(style, q, chosen, history, message, strict=False):
     system = TELL_PROMPT if style == "tell" else TEACH_PROMPT
     if strict:
         system += "\n\n" + STRICT_NOTE
+    if last and style == "teach":
+        system += "\n\n" + LAST_TURN_NOTE
     messages = [{"role": "system", "content": system}, {"role": "user", "content": context}]
     messages += history
     if message:
@@ -197,12 +209,13 @@ def respond(uid, q, chosen, turn, history, message):
             reason = None
 
     turns_left = max(limits["max_turns"] - turn - 1, 0)
+    last = turns_left == 0
     result, leak_retry = None, False
     if reason is None:
-        result = call_chain(build_messages(style, q, chosen, history, message))
+        result = call_chain(build_messages(style, q, chosen, history, message, last=last))
         if result and style == "teach" and leaks_answer(result["text"], q):
             leak_retry = True
-            result = call_chain(build_messages(style, q, chosen, history, message, strict=True))
+            result = call_chain(build_messages(style, q, chosen, history, message, strict=True, last=last))
             if result and leaks_answer(result["text"], q):
                 result, reason = None, "leak"
         if result is None and reason is None:

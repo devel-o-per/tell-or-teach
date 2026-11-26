@@ -8,6 +8,7 @@
 const { createApp } = Vue;
 
 const SUBJECT_NAMES = { mlt: 'MLT', viva: 'App Dev viva', java: 'Java' };
+const SUBJECT_TAGLINES = { viva: 'The 16 topics examiners ask most, from 675 real viva reports' };
 const SESSION_SIZE = 10;
 const COMEBACK_GAP = 3;
 const LETTERS = 'ABCDE';
@@ -122,6 +123,7 @@ createApp({
 
   methods: {
     subjectName(s) { return SUBJECT_NAMES[s] || s; },
+    subjectTagline(s) { return SUBJECT_TAGLINES[s] || ''; },
 
     async start(subject) {
       this.loadError = '';

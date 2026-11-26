@@ -22,6 +22,7 @@
     <div class="subjects">
       <button v-for="s in subjects" :key="s" class="subject" @click="start(s)">
         {{ subjectName(s) }}
+        <small v-if="subjectTagline(s)">{{ subjectTagline(s) }}</small>
       </button>
       <p v-if="!subjects.length" class="muted">Loading subjects…</p>
     </div>
@@ -43,6 +44,7 @@
     </div>
 
     <p v-if="isComeback" class="comeback">Comeback: an idea you missed earlier, asked a new way</p>
+    <p v-else-if="item.concept.asked" class="asked">Came up in {{ Math.round(item.concept.asked.pct) }}% of recent viva reports · {{ item.concept.asked.topic }}</p>
 
     <h2 class="question">{{ q.question }}</h2>
 

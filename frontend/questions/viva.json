@@ -38,7 +38,179 @@
             "Which tool in your stack is designed to run slow work outside the request?"
           ]
         }
-      ]
+      ],
+      "asked": {
+        "pct": 35.3,
+        "topic": "Celery"
+      }
+    },
+    {
+      "id": "viva-code-celery-task",
+      "topic": "Writing a Celery task",
+      "twins": [
+        {
+          "id": "viva-code-celery-task-a",
+          "question": "Fill the blank to make this function a Celery task:\n\n____\ndef add(x, y):\n    return x + y",
+          "options": [
+            "@app.route('/add')",
+            "@celery.schedule",
+            "@celery.task  (or @shared_task)",
+            "@celery.worker"
+          ],
+          "answer": 2,
+          "explanation": "A function becomes a Celery task with the task decorator (@celery.task, or @shared_task). @app.route makes a Flask route, and schedules live in the beat configuration, not in a decorator like these.",
+          "hints": [
+            "Which decorator registers a function with Celery rather than with Flask?",
+            "Is scheduling done on the function itself, or in the beat settings?"
+          ]
+        },
+        {
+          "id": "viva-code-celery-task-b",
+          "question": "A Flask route should start the add task in the background without waiting for it. Which call does that?",
+          "options": [
+            "add(2, 3)",
+            "add.delay(2, 3)",
+            "celery.run(add)",
+            "add.wait(2, 3)"
+          ],
+          "answer": 1,
+          "explanation": ".delay() (a shortcut for apply_async) sends the task to the queue and returns immediately. Calling add(2, 3) directly runs it inside the request, which is what you wanted to avoid.",
+          "hints": [
+            "Would calling add(2, 3) directly run in the background or inside the request?",
+            "Which method sends a task to the queue and returns straight away?"
+          ]
+        }
+      ],
+      "asked": {
+        "pct": 35.3,
+        "topic": "Celery"
+      }
+    },
+    {
+      "id": "viva-code-route",
+      "topic": "Writing a Flask route",
+      "twins": [
+        {
+          "id": "viva-code-route-a",
+          "question": "Fill the blank in this route, which adds two numbers sent as JSON:\n\n@app.route('/add', methods=['POST'])\ndef add():\n    data = ____\n    return jsonify({'sum': data['a'] + data['b']})",
+          "options": [
+            "request.args",
+            "request.form",
+            "jsonify(request)",
+            "request.get_json()"
+          ],
+          "answer": 3,
+          "explanation": "A JSON body is read with request.get_json(). request.args holds query-string values (?a=1), request.form holds HTML form fields, and jsonify builds a response rather than reading one.",
+          "hints": [
+            "The numbers arrive as JSON in the request body. Which request attribute reads a JSON body?",
+            "Which option is for ?a=1 in the URL, and which for HTML forms?"
+          ]
+        },
+        {
+          "id": "viva-code-route-b",
+          "question": "Fill the blank so this route both lists items (GET) and creates one (POST):\n\n@app.route('/items', ____)\ndef items():\n    if request.method == 'POST':\n        ...\n    return jsonify(all_items())",
+          "options": [
+            "methods=['GET', 'POST']",
+            "method='GET,POST'",
+            "methods='POST'",
+            "type=['GET', 'POST']"
+          ],
+          "answer": 0,
+          "explanation": "app.route takes a methods list naming every HTTP method the route accepts. Without POST in it, Flask answers POST requests with 405 Method Not Allowed.",
+          "hints": [
+            "What keyword does app.route use for allowed HTTP methods?",
+            "Does it take a single string or a list?"
+          ]
+        }
+      ],
+      "asked": {
+        "pct": 31.2,
+        "topic": "writing a new route"
+      }
+    },
+    {
+      "id": "viva-orm",
+      "topic": "ORM and SQLAlchemy",
+      "twins": [
+        {
+          "id": "viva-orm-a",
+          "question": "What does an ORM like SQLAlchemy do in your Flask app?",
+          "options": [
+            "Keeps all data in memory instead of a database",
+            "Lets you work with database rows as Python objects and writes the SQL for you",
+            "Removes the need for a database schema",
+            "Makes Vue render pages faster"
+          ],
+          "answer": 1,
+          "explanation": "ORM means Object-Relational Mapping. Each table becomes a Python class and each row an object, so you write user.name or User.query.all() and SQLAlchemy turns that into SQL for the database.",
+          "hints": [
+            "When you write User.query.all(), who writes the actual SQL?",
+            "What does each row of a table become in your Python code?"
+          ]
+        },
+        {
+          "id": "viva-orm-b",
+          "question": "In Flask-SQLAlchemy, what does a class like  class User(db.Model)  represent?",
+          "options": [
+            "A Vue component for the user page",
+            "A single column called User",
+            "A dictionary of logged-in users",
+            "A database table, where each User object is one row"
+          ],
+          "answer": 3,
+          "explanation": "Subclassing db.Model maps the class to a table. Its db.Column attributes are the columns, and every User object you create and commit becomes one row.",
+          "hints": [
+            "What does inheriting from db.Model tell SQLAlchemy?",
+            "If the class is the table, what is one object of that class?"
+          ]
+        }
+      ],
+      "asked": {
+        "pct": 30.2,
+        "topic": "ORM and models"
+      }
+    },
+    {
+      "id": "viva-broker",
+      "topic": "Celery and Redis",
+      "twins": [
+        {
+          "id": "viva-broker-a",
+          "question": "In a Flask + Celery + Redis setup, what is Redis's job for Celery?",
+          "options": [
+            "It runs the task's Python code",
+            "It is the message broker: a queue where Flask drops tasks and workers pick them up",
+            "It replaces the SQL database",
+            "It renders the email templates"
+          ],
+          "answer": 1,
+          "explanation": "Flask doesn't hand tasks straight to the worker. It puts a message in Redis, the broker, and the Celery worker reads tasks from there and runs them. Redis carries the messages; the worker runs the code.",
+          "hints": [
+            "When Flask calls .delay(), where does the task go before a worker runs it?",
+            "Who actually executes the Python code: Redis or the worker?"
+          ]
+        },
+        {
+          "id": "viva-broker-b",
+          "question": "Flask calls send_report.delay(), but Redis (the broker) is down. What happens?",
+          "options": [
+            "The worker runs it anyway, straight from Flask",
+            "Flask quietly runs it inside the request instead",
+            "The task can't be queued, so the call fails instead of the job running",
+            "The task waits in SQLite until Redis is back"
+          ],
+          "answer": 2,
+          "explanation": "With Redis down there is nowhere to put the task message, so it never reaches a worker; the call errors after trying to connect. Celery doesn't silently switch to running the task inside Flask or store it in your database.",
+          "hints": [
+            "How does a task normally travel from Flask to the worker?",
+            "If that path is broken, can the task still reach the worker?"
+          ]
+        }
+      ],
+      "asked": {
+        "pct": 26.5,
+        "topic": "Redis"
+      }
     },
     {
       "id": "viva-redis-cache",
@@ -76,45 +248,432 @@
             "Where could you keep that computed answer so every visitor can reuse it, and for how long?"
           ]
         }
-      ]
+      ],
+      "asked": {
+        "pct": 24.7,
+        "topic": "caching"
+      }
     },
     {
-      "id": "viva-http-methods",
-      "topic": "REST APIs",
+      "id": "viva-cache-invalidation",
+      "topic": "Stale cache",
       "twins": [
         {
-          "id": "viva-http-methods-a",
-          "question": "Which HTTP method should an API use to update an existing record's details?",
+          "id": "viva-cache-invalidation-a",
+          "question": "You cache the list of all items in Redis for 10 minutes. An admin adds a new item. What do users see until the cache expires?",
           "options": [
-            "GET",
-            "PUT (or PATCH)",
-            "DELETE",
-            "HEAD"
+            "The old list, without the new item",
+            "The new item, because Redis watches the database",
+            "An error, because the cache is out of date",
+            "An empty list, because the cache clears on every write"
           ],
-          "answer": 1,
-          "explanation": "GET only reads, DELETE removes and HEAD fetches headers. PUT replaces a record and PATCH changes part of it, so updating an existing record uses PUT or PATCH.",
+          "answer": 0,
+          "explanation": "Redis doesn't know your database changed. Until the cached list expires, every request gets the stored copy, so the new item is missing. This is the stale-cache problem.",
           "hints": [
-            "Which methods only read data, and which ones change it?",
-            "Of the methods that change data, which one doesn't remove anything?"
+            "Does Redis know when your SQL database changes?",
+            "Until the 10 minutes are up, where does the list come from?"
           ]
         },
         {
-          "id": "viva-http-methods-b",
-          "question": "A Flask route deletes a record but is called with GET. What is the main problem?",
+          "id": "viva-cache-invalidation-b",
+          "question": "How do you make users see a newly added item right away when its list is cached?",
           "options": [
-            "GET requests cannot carry an ID",
-            "Flask does not support GET routes",
-            "GET is always slower than POST",
-            "GET should never change data: links, prefetching or crawlers could trigger the delete"
+            "Make the cache expiry longer",
+            "Restart the Vue app",
+            "Delete (invalidate) that cache key whenever the data changes",
+            "Move the cache to the browser's localStorage"
           ],
-          "answer": 3,
-          "explanation": "GET is meant to be safe: it should only read. Browsers prefetch links, crawlers follow them and caches replay them, so a GET that deletes data can be triggered by accident. Changes belong in POST, PUT, PATCH or DELETE.",
+          "answer": 2,
+          "explanation": "When the data changes, remove the cached copy (for example cache.delete or delete_memoized). The next request finds no cache, reads fresh data from the database and caches that.",
           "hints": [
-            "What is GET supposed to do, and what is this route actually doing?",
-            "Who else besides your user might open a GET link without meaning to?"
+            "The problem is an old copy. What could you do to that copy when the data changes?",
+            "After the old copy is gone, where would the next request read from?"
           ]
         }
-      ]
+      ],
+      "asked": {
+        "pct": 24.7,
+        "topic": "caching"
+      }
+    },
+    {
+      "id": "viva-token-auth",
+      "topic": "Token-based login",
+      "twins": [
+        {
+          "id": "viva-token-auth-a",
+          "question": "Your Vue app is served separately from your Flask API. Why is token-based authentication (a token sent with each request) a common choice here?",
+          "options": [
+            "Tokens make passwords unnecessary",
+            "JavaScript apps cannot use cookies at all",
+            "Each request carries its own proof of identity, so the API doesn't need to remember a login session",
+            "Tokens encrypt everything the API sends back"
+          ],
+          "answer": 2,
+          "explanation": "With tokens the API stays stateless: it doesn't keep a server-side session for each browser. Every request carries the token, and the API checks it. That fits a separate Vue frontend and Flask backend well.",
+          "hints": [
+            "After login, how does the API know who is calling on the next request?",
+            "Does the server need to remember anything between requests if each request brings its own proof?"
+          ]
+        },
+        {
+          "id": "viva-token-auth-b",
+          "question": "In a token-based Flask API, what must the Vue frontend do on every protected request?",
+          "options": [
+            "Send the token with the request, usually in the Authorization header",
+            "Send the username and password again",
+            "Nothing: the server remembers the browser after the first login",
+            "Open a new Flask session before each call"
+          ],
+          "answer": 0,
+          "explanation": "Token APIs are stateless: the server doesn't remember the browser. So every protected request must include the token, usually as Authorization: Bearer <token>. Without it the API can't tell who is calling.",
+          "hints": [
+            "Does a token-based API keep a memory of which browser logged in?",
+            "If the server remembers nothing, what has to travel with every request?"
+          ]
+        }
+      ],
+      "asked": {
+        "pct": 18.1,
+        "topic": "tokens and JWT"
+      }
+    },
+    {
+      "id": "viva-lifecycle",
+      "topic": "Vue lifecycle hooks",
+      "twins": [
+        {
+          "id": "viva-lifecycle-a",
+          "question": "Which Vue lifecycle hook is the usual place to fetch data from your API when a component first appears?",
+          "options": [
+            "mounted (or created)",
+            "beforeUnmount",
+            "updated",
+            "unmounted"
+          ],
+          "answer": 0,
+          "explanation": "created and mounted run once when the component starts, so they are the natural place to load its data. updated runs after every re-render, and beforeUnmount/unmounted run when it is removed.",
+          "hints": [
+            "You want the data once, when the component appears. Which hooks run once at the start?",
+            "Which hooks run when the component is being removed instead?"
+          ]
+        },
+        {
+          "id": "viva-lifecycle-b",
+          "question": "You fetch data inside updated(), and the page keeps fetching in a loop. Why?",
+          "options": [
+            "updated() only runs once, so it must be a network bug",
+            "fetch cannot be used inside Vue components",
+            "Saving the fetched data re-renders the component, which calls updated() again",
+            "The API is too slow, so Vue retries it"
+          ],
+          "answer": 2,
+          "explanation": "updated runs after every re-render. Storing the fetched data changes reactive state, which triggers another render, which calls updated again: a loop. Fetch in created or mounted instead.",
+          "hints": [
+            "When does updated() run?",
+            "What happens to the component when you store the fetched data?"
+          ]
+        }
+      ],
+      "asked": {
+        "pct": 18.1,
+        "topic": "lifecycle hooks"
+      }
+    },
+    {
+      "id": "viva-cli-cdn",
+      "topic": "Vue CLI vs CDN",
+      "twins": [
+        {
+          "id": "viva-cli-cdn-a",
+          "question": "What is the main difference between using Vue from a CDN and using the Vue CLI or Vite?",
+          "options": [
+            "CDN Vue cannot use components",
+            "A CDN loads Vue with a script tag and no build step; the CLI or Vite sets up a project with a build step and .vue files",
+            "CLI apps run on the server instead of the browser",
+            "The CDN version is only allowed in production"
+          ],
+          "answer": 1,
+          "explanation": "With a CDN you add a script tag and write Vue directly in your pages, no npm or build. The CLI or Vite creates a project with npm, a build step and single-file .vue components that get compiled.",
+          "hints": [
+            "Which option needs npm and a build step, and which only needs a script tag?",
+            "Can CDN Vue still have components, just written differently?"
+          ]
+        },
+        {
+          "id": "viva-cli-cdn-b",
+          "question": "Your project loads Vue with a script tag from a CDN and has no npm build. Which of these can you NOT use as-is?",
+          "options": [
+            ".vue single-file components",
+            "v-if and v-for",
+            "data() and methods",
+            "Vue Router from its CDN build"
+          ],
+          "answer": 0,
+          "explanation": ".vue files have to be compiled by a build tool such as Vite, so a plain CDN setup can't load them directly. Directives, data, methods and the CDN build of Vue Router all work without a build.",
+          "hints": [
+            "Which of these needs a compiler before the browser can understand it?",
+            "Do directives like v-if need a build step?"
+          ]
+        }
+      ],
+      "asked": {
+        "pct": 14.0,
+        "topic": "CLI vs CDN"
+      }
+    },
+    {
+      "id": "viva-celery-beat",
+      "topic": "Scheduled jobs",
+      "twins": [
+        {
+          "id": "viva-celery-beat-a",
+          "question": "Your app must send a daily reminder at 6 PM. Which part of the Celery setup triggers the task at that time?",
+          "options": [
+            "The Celery worker, which wakes itself up every day",
+            "Redis, which runs Python code at set times",
+            "The Flask route the user last visited",
+            "Celery Beat, the scheduler that sends tasks on a timetable"
+          ],
+          "answer": 3,
+          "explanation": "Workers only run tasks that arrive in the queue. Celery Beat is the separate scheduler process that puts the task into the queue at 6 PM; a worker then picks it up and runs it.",
+          "hints": [
+            "Does a worker decide when to run something, or does it wait for work?",
+            "Which Celery process keeps a timetable?"
+          ]
+        },
+        {
+          "id": "viva-celery-beat-b",
+          "question": "Your Celery worker is running, but the scheduled daily reminder never fires. Which process is most likely missing?",
+          "options": [
+            "A second Flask server",
+            "celery beat",
+            "The Vue development server",
+            "SQLite's background thread"
+          ],
+          "answer": 1,
+          "explanation": "A worker runs tasks it receives but never schedules anything itself. Scheduled tasks need Celery Beat running alongside the worker to send them on time.",
+          "hints": [
+            "The worker is fine, so who is supposed to send it the daily task?",
+            "Which Celery process knows about times and schedules?"
+          ]
+        }
+      ],
+      "asked": {
+        "pct": 13.0,
+        "topic": "Celery Beat"
+      }
+    },
+    {
+      "id": "viva-fetch-errors",
+      "topic": "fetch, axios and errors",
+      "twins": [
+        {
+          "id": "viva-fetch-errors-a",
+          "question": "Your Flask API returns a 400 with an error message. With fetch, why doesn't your .catch() run?",
+          "options": [
+            "Flask cannot send a 400 to Vue",
+            "fetch only rejects on a network failure; you must check response.ok or response.status yourself",
+            ".catch() only works with axios",
+            "400 is a success code"
+          ],
+          "answer": 1,
+          "explanation": "fetch treats any HTTP response, even 400 or 500, as a successful request. It only rejects when the network fails. Check response.ok (or the status) and handle the error yourself.",
+          "hints": [
+            "Did the request reach the server and come back?",
+            "So from fetch's point of view, did anything 'fail'?"
+          ]
+        },
+        {
+          "id": "viva-fetch-errors-b",
+          "question": "What is the main practical difference between fetch and axios when the server returns an error status?",
+          "options": [
+            "fetch cannot send JSON",
+            "axios only works with Flask",
+            "axios rejects the promise on 4xx/5xx by default; fetch resolves and you check response.ok",
+            "Both ignore status codes completely"
+          ],
+          "answer": 2,
+          "explanation": "By default axios throws for error statuses, so .catch() or try/catch receives them. fetch resolves for any response, so you must check response.ok yourself.",
+          "hints": [
+            "Which of the two treats a 404 or 500 as an error automatically?",
+            "With the other one, what must you check by hand?"
+          ]
+        }
+      ],
+      "asked": {
+        "pct": 13.0,
+        "topic": "fetch and axios"
+      }
+    },
+    {
+      "id": "viva-vue-router",
+      "topic": "Vue Router",
+      "twins": [
+        {
+          "id": "viva-vue-router-a",
+          "question": "In a Vue single-page app, what does Vue Router do?",
+          "options": [
+            "Sends API requests to Flask",
+            "Routes emails to users",
+            "Shows a different component for each URL without reloading the page",
+            "Speeds up Flask routes"
+          ],
+          "answer": 2,
+          "explanation": "Vue Router maps URLs like /admin or /login to components and swaps them in the browser, so the app feels like several pages while staying one page that never reloads.",
+          "hints": [
+            "In a single-page app, does the browser load a new page when the URL changes?",
+            "So what decides which component appears for /admin?"
+          ]
+        },
+        {
+          "id": "viva-vue-router-b",
+          "question": "Which Vue Router feature runs before every page change and can send a logged-out user to the login page?",
+          "options": [
+            "router-link",
+            "A computed property",
+            "v-cloak",
+            "A navigation guard such as router.beforeEach"
+          ],
+          "answer": 3,
+          "explanation": "router.beforeEach runs before each navigation and can check a token or role, then redirect to /login. It improves the experience, but the API must still check permissions itself.",
+          "hints": [
+            "You need code that runs before every page change. Which Router feature is built for that?",
+            "Which option here is about navigating, not displaying?"
+          ]
+        }
+      ],
+      "asked": {
+        "pct": 11.2,
+        "topic": "Vue Router"
+      }
+    },
+    {
+      "id": "viva-foreign-key",
+      "topic": "Database relationships",
+      "twins": [
+        {
+          "id": "viva-foreign-key-a",
+          "question": "In Flask-SQLAlchemy, a User has many Bookings. Where does the foreign key column go?",
+          "options": [
+            "In the users table, as user.booking_id",
+            "In both tables",
+            "In the bookings table, as booking.user_id",
+            "In neither: db.relationship stores it"
+          ],
+          "answer": 2,
+          "explanation": "In one-to-many, the 'many' side holds the foreign key. Each booking stores which user it belongs to (user_id). db.relationship is a Python convenience built on top of that column; it doesn't store anything itself.",
+          "hints": [
+            "Which side has many rows for one row on the other side?",
+            "Can one column in a user row hold many booking IDs?"
+          ]
+        },
+        {
+          "id": "viva-foreign-key-b",
+          "question": "For 'a user has many bookings', a developer adds a booking_id column to the users table. What goes wrong?",
+          "options": [
+            "SQLite refuses to create the column",
+            "Bookings can no longer be deleted",
+            "Nothing: both designs work the same",
+            "Each user can then point to only one booking"
+          ],
+          "answer": 3,
+          "explanation": "A single column in the users row can hold one value, so a user could link to only one booking. The foreign key belongs on the many side: bookings.user_id.",
+          "hints": [
+            "How many values can one column in one row hold?",
+            "So how many bookings could that user point to?"
+          ]
+        }
+      ],
+      "asked": {
+        "pct": 10.2,
+        "topic": "keys and relationships"
+      }
+    },
+    {
+      "id": "viva-server-checks",
+      "topic": "Role-based access",
+      "twins": [
+        {
+          "id": "viva-server-checks-a",
+          "question": "Your Vue admin page hides the 'Delete user' button from normal users. Is that enough to stop a normal user deleting users?",
+          "options": [
+            "No: the Flask route must check the role too, because anyone can call the API directly",
+            "Yes: a hidden button can't be clicked",
+            "Yes, as long as the Vue code is minified",
+            "No: you must also hide the route's URL inside the JavaScript"
+          ],
+          "answer": 0,
+          "explanation": "Hiding a button only changes what the page shows. Anyone can send a request straight to the API with a tool like Postman or the browser console. The real protection is a role check inside the Flask route.",
+          "hints": [
+            "Is the browser the only way to send a request to your API?",
+            "Where does a check have to live so that nobody can skip it?"
+          ]
+        },
+        {
+          "id": "viva-server-checks-b",
+          "question": "A normal user sends DELETE /api/users/5 directly from Postman with their own valid token. What should a correctly built API return?",
+          "options": [
+            "200 OK, and the user is deleted",
+            "403 Forbidden, because the server checks the user's role",
+            "404 Not Found, always",
+            "302, redirecting to the Vue home page"
+          ],
+          "answer": 1,
+          "explanation": "The token proves who they are, but their role doesn't allow deleting users. A server-side role check refuses the action with 403 Forbidden: authenticated, but not allowed.",
+          "hints": [
+            "The token is valid: does that mean the user may do anything?",
+            "Which status code means 'I know who you are, but you're not allowed'?"
+          ]
+        }
+      ],
+      "asked": {
+        "pct": 9.3,
+        "topic": "roles and admin access"
+      }
+    },
+    {
+      "id": "viva-authn-authz",
+      "topic": "Authentication vs authorization",
+      "twins": [
+        {
+          "id": "viva-authn-authz-a",
+          "question": "What is the difference between authentication and authorization?",
+          "options": [
+            "They mean the same thing",
+            "Authentication is for admins, authorization is for users",
+            "Authorization always happens before authentication",
+            "Authentication checks who you are; authorization checks what you are allowed to do"
+          ],
+          "answer": 3,
+          "explanation": "Authentication proves identity, for example a login or a valid token. Authorization then decides what that identity may do, for example only admins can delete users.",
+          "hints": [
+            "Which one answers 'who are you?' and which answers 'are you allowed?'",
+            "Can the server decide what you may do before it knows who you are?"
+          ]
+        },
+        {
+          "id": "viva-authn-authz-b",
+          "question": "A logged-in student opens the admin dashboard and the API refuses. Which check refused them?",
+          "options": [
+            "Authorization: the server knows who they are, but they aren't allowed",
+            "Authentication: the server doesn't know who they are",
+            "Encryption: their password wasn't hashed",
+            "Caching: the dashboard was out of date"
+          ],
+          "answer": 0,
+          "explanation": "They are logged in, so authentication succeeded. The refusal comes from the role check, which is authorization, usually answered with 403 Forbidden.",
+          "hints": [
+            "Is the student logged in? So did the 'who are you' check pass?",
+            "Which check is about permission rather than identity?"
+          ]
+        }
+      ],
+      "asked": {
+        "pct": 7.4,
+        "topic": "authentication vs authorization"
+      }
     }
-  ]
+  ],
+  "source": "Topics chosen from 675 student viva reports (May 2023 to Aug 2026); 'asked' is the share of Jul-Aug 2026 reports mentioning the topic."
 }

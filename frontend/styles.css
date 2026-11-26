@@ -34,6 +34,8 @@ button:focus-visible, input:focus-visible { outline: 2px solid var(--teal); outl
 .subjects { display: grid; gap: 10px; margin: 20px 0; }
 .subject { text-align: left; padding: 16px; font-size: 18px; font-weight: 600; background: var(--panel); color: var(--ink); border: 1.5px solid var(--rule); }
 .subject:hover { border-color: var(--teal); }
+.subject small { display: block; font-size: 14px; font-weight: 400; color: var(--mute); margin-top: 4px; }
+.asked { font-size: 13.5px; color: var(--mute); margin: 14px 0 0; }
 .consent { font-size: 13.5px; color: var(--mute); border-top: 1px solid var(--rule); padding-top: 14px; }
 
 .bar { display: flex; justify-content: space-between; font-size: 14px; color: var(--mute); border-bottom: 1px solid var(--rule); padding-bottom: 8px; }

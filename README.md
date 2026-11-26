@@ -11,6 +11,12 @@ Toggle Wars (WeMakeDevs × Flagsmith) · Track 01: Test Something Real
 - Live app: _add link_
 - Pre-registered design: [EXPERIMENT.md](EXPERIMENT.md)
 
+## Where the questions come from
+
+The App Dev viva set covers the 16 topics examiners ask about most, chosen from 675 student-written viva
+reports (May 2023 to Aug 2026). Each question shows how often its topic came up in the latest term's reports.
+Both tutor styles see exactly the same questions and badges.
+
 ## How Flagsmith is used
 
 | Flag | Kind | Job |
