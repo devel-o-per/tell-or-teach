@@ -54,12 +54,26 @@
     return plan.slice(0, size);
   }
 
+  /*
+   * Which twin to ask as the original. `seenAt` maps a question id to its place in
+   * the seen list (higher = more recent). Prefer a twin never seen; if both were
+   * seen, the one seen longer ago; if neither was seen, either at random.
+   */
+  function pickTwin(concept, seenAt, rng) {
+    const [a, b] = concept.twins.map((t) => (t.id && seenAt.has(t.id) ? seenAt.get(t.id) : -1));
+    if (a === b) return rng() < 0.5 ? 0 : 1;
+    if (a === -1) return 0;
+    if (b === -1) return 1;
+    return a < b ? 0 : 1;
+  }
+
   class Session {
     constructor(concepts, opts = {}) {
       const rng = opts.rng || Math.random;
       this.gap = opts.gap ?? 3;
+      const seenAt = new Map((opts.seen || []).map((id, i) => [id, i]));
       this.queue = planOriginals(concepts, opts, rng)
-        .map((c) => ({ concept: c, twin: rng() < 0.5 ? 0 : 1, kind: 'original' }));
+        .map((c) => ({ concept: c, twin: pickTwin(c, seenAt, rng), kind: 'original' }));
       this.pending = [];
       this.shown = 0;
       this.results = [];
@@ -111,7 +125,20 @@
     }
   }
 
-  const api = { Session, shuffle, planOriginals };
+  // Topic cards: one per category, with its highest "asked %" and number of ideas, most-asked first.
+  function categories(concepts) {
+    const byName = new Map();
+    concepts.forEach((c) => {
+      if (!c.category) return;
+      const cat = byName.get(c.category) || { name: c.category, count: 0, topPct: 0 };
+      cat.count += 1;
+      cat.topPct = Math.max(cat.topPct, (c.asked && c.asked.pct) || 0);
+      byName.set(c.category, cat);
+    });
+    return [...byName.values()].sort((x, y) => y.topPct - x.topPct);
+  }
+
+  const api = { Session, shuffle, planOriginals, pickTwin, categories };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.Quiz = api;
 })(typeof window !== 'undefined' ? window : globalThis);

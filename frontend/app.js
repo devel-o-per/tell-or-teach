@@ -24,7 +24,8 @@ function makeUid() {
   return uid;
 }
 
-// Concept ids this browser has already been shown, per subject.
+// Ids this browser has already been shown, per subject, oldest first: concept ids
+// (to prefer unseen ideas) and question ids (to prefer the unseen twin of an idea).
 function loadSeen(subject) {
   try {
     const list = JSON.parse(localStorage.getItem('tot_seen_' + subject) || '[]');
@@ -36,12 +37,16 @@ function saveSeen(subject, list) {
   try { localStorage.setItem('tot_seen_' + subject, JSON.stringify(list)); } catch (e) { /* ignore */ }
 }
 
-// Record a shown concept; once every concept has been seen, start the list again.
-function markSeen(subject, conceptId, allConcepts) {
-  const seen = new Set(loadSeen(subject));
-  seen.add(conceptId);
-  const all = allConcepts.every((c) => seen.has(c.id));
-  saveSeen(subject, all ? [] : [...seen]);
+// Record a shown question (moved to the end = most recent). Once every concept has
+// been seen, the concept ids start again; question ids stay so twins keep rotating.
+function markSeen(subject, conceptId, questionId, allConcepts) {
+  let list = loadSeen(subject).filter((id) => id !== conceptId && id !== questionId);
+  list.push(conceptId);
+  if (questionId) list.push(questionId);
+  const conceptIds = new Set(allConcepts.map((c) => c.id));
+  const seen = new Set(list);
+  if (allConcepts.every((c) => seen.has(c.id))) list = list.filter((id) => !conceptIds.has(id));
+  saveSeen(subject, list);
 }
 
 function readGroup() {
@@ -82,7 +87,9 @@ createApp({
       group: readGroup(),
       subjects: [],
       subject: null,
-      concepts: null,
+      concepts: null,  // the whole bank of the current subject
+      topic: null,     // category name during a topic session, null for the most-asked mix
+      banks: {},       // subject -> concepts, loaded once
       flagsReady: false,
       studentsToday: null,
       loadError: '',
@@ -103,6 +110,13 @@ createApp({
 
   computed: {
     isComeback() { return this.item && this.item.kind === 'comeback'; },
+    // Header name: the topic during a topic session, else the subject.
+    sessionTitle() { return this.topic || this.subjectName(this.subject); },
+    // Receipt way back to the start screen: another subject, or another topic.
+    chooseLabel() {
+      if (this.subjects.length > 1) return 'Choose another subject';
+      return this.topicsFor(this.subject).length ? 'Choose another topic' : '';
+    },
     // Last item: nothing left in the queue and no comeback still to come.
     isLast() { return !!this.session && !this.session.queue.length && !this.session.pending.length; },
     isCode() { return !!this.q && this.q.question.includes('\n'); },
@@ -153,6 +167,7 @@ createApp({
     this.flagsReady = await Flags.init(this.uid, this.group);
     const live = String(Flags.value('question_set', 'viva')).split(',').map((s) => s.trim());
     this.subjects = live.filter((s) => SUBJECT_NAMES[s]);
+    this.subjects.forEach((s) => this.loadBank(s).catch(() => {})); // for the topic cards
     api('/api/stats').then((r) => { this.studentsToday = r.studentsToday; }).catch(() => {});
     addEventListener('pagehide', () => Flags.flush());
     addEventListener('popstate', () => this.onBack());
@@ -162,22 +177,37 @@ createApp({
     subjectName(s) { return SUBJECT_NAMES[s] || s; },
     subjectTagline(s) { return SUBJECT_TAGLINES[s] || ''; },
 
-    async start(subject) {
+    async loadBank(subject) {
+      if (!this.banks[subject]) {
+        const res = await fetch('questions/' + subject + '.json');
+        if (!res.ok) throw new Error('questions ' + res.status);
+        this.banks[subject] = (await res.json()).concepts;
+      }
+      return this.banks[subject];
+    },
+
+    topicsFor(subject) {
+      return this.banks[subject] ? Quiz.categories(this.banks[subject]) : [];
+    },
+
+    // topic: a category name for a topic session, or null for the most-asked mix.
+    async start(subject, topic = null) {
       this.loadError = '';
       try {
-        const res = await fetch('questions/' + subject + '.json');
-        const bank = await res.json();
+        this.concepts = await this.loadBank(subject);
         this.subject = subject;
-        this.concepts = bank.concepts;
+        this.topic = topic;
         this.begin([]);
       } catch (e) {
         this.loadError = 'Could not load the questions. Please refresh and try again.';
       }
     },
 
-    // New session from the already-loaded bank; `priority` concept ids are asked first.
+    // New session from the loaded bank (only the topic's concepts in a topic session);
+    // `priority` concept ids are asked first. Sessions are min(15, concepts available).
     begin(priority) {
-      this.session = new Quiz.Session(this.concepts, {
+      const pool = this.topic ? this.concepts.filter((c) => c.category === this.topic) : this.concepts;
+      this.session = new Quiz.Session(pool, {
         size: SESSION_SIZE, gap: COMEBACK_GAP, priority, seen: loadSeen(this.subject),
       });
       this.receipt = null;
@@ -239,7 +269,7 @@ createApp({
       this.tutor = freshTutor();
       this.item = this.session.next();
       if (!this.item) return this.finish();
-      markSeen(this.subject, this.item.concept.id, this.concepts);
+      markSeen(this.subject, this.item.concept.id, this.session.question(this.item).id, this.concepts);
       this.q = this.session.question(this.item);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     },
@@ -336,6 +366,7 @@ createApp({
       this.screen = 'start';
       this.session = null;
       this.receipt = null;
+      this.topic = null;
       this.releaseBack();
     },
 

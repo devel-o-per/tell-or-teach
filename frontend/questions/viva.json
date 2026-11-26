@@ -4,6 +4,7 @@
   "concepts": [
     {
       "id": "viva-celery",
+      "category": "Celery & background jobs",
       "topic": "Background jobs",
       "twins": [
         {
@@ -47,6 +48,7 @@
     },
     {
       "id": "viva-code-celery-task",
+      "category": "Celery & background jobs",
       "topic": "Writing a Celery task",
       "twins": [
         {
@@ -90,6 +92,7 @@
     },
     {
       "id": "viva-celery-worker",
+      "category": "Celery & background jobs",
       "topic": "Running a Celery worker",
       "asked": {
         "pct": 35.3,
@@ -133,6 +136,7 @@
     },
     {
       "id": "viva-code-route",
+      "category": "Flask routes & APIs",
       "topic": "Writing a Flask route",
       "twins": [
         {
@@ -176,6 +180,7 @@
     },
     {
       "id": "viva-code-route-filter",
+      "category": "Flask routes & APIs",
       "topic": "Writing query routes",
       "asked": {
         "pct": 31.2,
@@ -219,6 +224,7 @@
     },
     {
       "id": "viva-code-login",
+      "category": "Login & security",
       "topic": "Login route",
       "asked": {
         "pct": 31.2,
@@ -262,6 +268,7 @@
     },
     {
       "id": "viva-orm",
+      "category": "Database & ORM",
       "topic": "ORM and SQLAlchemy",
       "twins": [
         {
@@ -305,6 +312,7 @@
     },
     {
       "id": "viva-orm-query",
+      "category": "Database & ORM",
       "topic": "Getting one row or many",
       "asked": {
         "pct": 30.2,
@@ -348,6 +356,7 @@
     },
     {
       "id": "viva-orm-relationship",
+      "category": "Database & ORM",
       "topic": "Relationships in models",
       "asked": {
         "pct": 30.2,
@@ -391,6 +400,7 @@
     },
     {
       "id": "viva-broker",
+      "category": "Celery & background jobs",
       "topic": "Celery and Redis",
       "twins": [
         {
@@ -434,6 +444,7 @@
     },
     {
       "id": "viva-redis-what",
+      "category": "Caching & Redis",
       "topic": "What Redis is",
       "asked": {
         "pct": 26.5,
@@ -477,6 +488,7 @@
     },
     {
       "id": "viva-redis-cache",
+      "category": "Caching & Redis",
       "topic": "Caching",
       "twins": [
         {
@@ -520,6 +532,7 @@
     },
     {
       "id": "viva-cache-invalidation",
+      "category": "Caching & Redis",
       "topic": "Stale cache",
       "twins": [
         {
@@ -563,6 +576,7 @@
     },
     {
       "id": "viva-cache-decorator",
+      "category": "Caching & Redis",
       "topic": "Caching a route",
       "asked": {
         "pct": 24.7,
@@ -606,6 +620,7 @@
     },
     {
       "id": "viva-token-auth",
+      "category": "Login & security",
       "topic": "Token-based login",
       "twins": [
         {
@@ -649,6 +664,7 @@
     },
     {
       "id": "viva-lifecycle",
+      "category": "Vue.js & frontend",
       "topic": "Vue lifecycle hooks",
       "twins": [
         {
@@ -692,6 +708,7 @@
     },
     {
       "id": "viva-csv-export",
+      "category": "Celery & background jobs",
       "topic": "Async CSV export",
       "asked": {
         "pct": 17.7,
@@ -735,6 +752,7 @@
     },
     {
       "id": "viva-css-priority",
+      "category": "Vue.js & frontend",
       "topic": "CSS and styling",
       "asked": {
         "pct": 16.7,
@@ -778,6 +796,7 @@
     },
     {
       "id": "viva-cli-cdn",
+      "category": "Vue.js & frontend",
       "topic": "Vue CLI vs CDN",
       "twins": [
         {
@@ -821,6 +840,7 @@
     },
     {
       "id": "viva-celery-beat",
+      "category": "Celery & background jobs",
       "topic": "Scheduled jobs",
       "twins": [
         {
@@ -864,6 +884,7 @@
     },
     {
       "id": "viva-fetch-errors",
+      "category": "Flask routes & APIs",
       "topic": "fetch, axios and errors",
       "twins": [
         {
@@ -907,6 +928,7 @@
     },
     {
       "id": "viva-crontab",
+      "category": "Celery & background jobs",
       "topic": "Scheduling with crontab",
       "asked": {
         "pct": 13.0,
@@ -950,6 +972,7 @@
     },
     {
       "id": "viva-search",
+      "category": "Flask routes & APIs",
       "topic": "Adding search",
       "asked": {
         "pct": 12.6,
@@ -993,6 +1016,7 @@
     },
     {
       "id": "viva-vue-router",
+      "category": "Vue.js & frontend",
       "topic": "Vue Router",
       "twins": [
         {
@@ -1036,6 +1060,7 @@
     },
     {
       "id": "viva-token-storage",
+      "category": "Login & security",
       "topic": "Where the token lives",
       "asked": {
         "pct": 11.2,
@@ -1079,6 +1104,7 @@
     },
     {
       "id": "viva-foreign-key",
+      "category": "Database & ORM",
       "topic": "Database relationships",
       "twins": [
         {
@@ -1122,6 +1148,7 @@
     },
     {
       "id": "viva-async-await",
+      "category": "Vue.js & frontend",
       "topic": "async and await",
       "asked": {
         "pct": 9.8,
@@ -1165,6 +1192,7 @@
     },
     {
       "id": "viva-v-model",
+      "category": "Vue.js & frontend",
       "topic": "v-model and v-bind",
       "asked": {
         "pct": 9.8,
@@ -1208,6 +1236,7 @@
     },
     {
       "id": "viva-v-for-key",
+      "category": "Vue.js & frontend",
       "topic": "Keys in v-for",
       "asked": {
         "pct": 9.8,
@@ -1251,6 +1280,7 @@
     },
     {
       "id": "viva-server-checks",
+      "category": "Login & security",
       "topic": "Role-based access",
       "twins": [
         {
@@ -1294,6 +1324,7 @@
     },
     {
       "id": "viva-celery-parts",
+      "category": "Celery & background jobs",
       "topic": "Celery's parts",
       "asked": {
         "pct": 8.8,
@@ -1337,6 +1368,7 @@
     },
     {
       "id": "viva-email",
+      "category": "Celery & background jobs",
       "topic": "Sending email",
       "asked": {
         "pct": 8.4,
@@ -1380,6 +1412,7 @@
     },
     {
       "id": "viva-http-methods",
+      "category": "Flask routes & APIs",
       "topic": "HTTP methods",
       "asked": {
         "pct": 7.9,
@@ -1423,6 +1456,7 @@
     },
     {
       "id": "viva-authn-authz",
+      "category": "Login & security",
       "topic": "Authentication vs authorization",
       "twins": [
         {
@@ -1466,6 +1500,7 @@
     },
     {
       "id": "viva-status-codes",
+      "category": "Login & security",
       "topic": "401 vs 403",
       "asked": {
         "pct": 7.4,
@@ -1509,6 +1544,7 @@
     },
     {
       "id": "viva-store",
+      "category": "Vue.js & frontend",
       "topic": "Shared state (Vuex/Pinia)",
       "asked": {
         "pct": 7.4,
@@ -1552,6 +1588,7 @@
     },
     {
       "id": "viva-props-emit",
+      "category": "Vue.js & frontend",
       "topic": "Props and emit",
       "asked": {
         "pct": 7.0,
@@ -1595,6 +1632,7 @@
     },
     {
       "id": "viva-computed",
+      "category": "Vue.js & frontend",
       "topic": "Computed properties",
       "asked": {
         "pct": 5.1,
@@ -1638,6 +1676,7 @@
     },
     {
       "id": "viva-v-if-show",
+      "category": "Vue.js & frontend",
       "topic": "v-if vs v-show",
       "asked": {
         "pct": 4.7,
@@ -1681,6 +1720,7 @@
     },
     {
       "id": "viva-reactivity",
+      "category": "Vue.js & frontend",
       "topic": "Vue reactivity",
       "asked": {
         "pct": 4.7,
@@ -1724,6 +1764,7 @@
     },
     {
       "id": "viva-cors",
+      "category": "Flask routes & APIs",
       "topic": "CORS",
       "asked": {
         "pct": 4.7,
