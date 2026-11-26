@@ -111,11 +111,14 @@ def _call(name, messages):
     model = os.getenv(p["model_env"], p["default_model"])
     if "nemotron" in model.lower():  # Nemotron thinks out loud unless told not to
         messages = [{"role": "system", "content": "/no_think\n" + messages[0]["content"]}] + messages[1:]
+    payload = {"model": model, "messages": messages, "max_tokens": MAX_TOKENS, "temperature": 0.3}
+    if "gpt-oss" in model:  # Groq's gpt-oss models reason first: keep it short and hidden
+        payload.update(reasoning_effort="low", include_reasoning=False, max_tokens=MAX_TOKENS + 500)
     started = time.monotonic()
     resp = requests.post(
         p["url"],
         headers={"Authorization": f"Bearer {os.environ[p['key_env']]}"},
-        json={"model": model, "messages": messages, "max_tokens": MAX_TOKENS, "temperature": 0.3},
+        json=payload,
         timeout=PROVIDER_TIMEOUT,
     )
     resp.raise_for_status()
